@@ -35,15 +35,34 @@ Service layer is OS-agnostic because inference is standardized through `llama-se
 - Local-first for routine tasks when available
 - Cloud for hard tasks and overflow during demand spikes
 
+## Memory-Constrained Operating Point
+
+Assumptions for Track A generation profile:
+
+- Installed memory envelope: $M_{avail} = 16 \text{ to } 24$ GB
+- Safety factor: $\eta = 0.85$
+- Usable memory envelope: $\eta M_{avail} = 13.6 \text{ to } 20.4$ GB
+- Planned runtime working set (small quantized model, strict context/concurrency caps): $M_{req} \approx 13 \text{ to } 18$ GB
+
+Throughput decomposition:
+
+- $\mu_{compute} \approx 78$ tokens/sec
+- $\mu_{memory} \approx 63$ tokens/sec
+- $f_{fit} = 0.95$ (memory pressure at low-memory edge)
+
+```math
+\mu_{eff} = f_{fit}\cdot\min(\mu_{compute},\mu_{memory}) \approx 0.95\cdot 63 = 59.85 \approx 60
+```
+
 ## Capacity Assumption
 
-- Effective local capacity target: $\mu = 60$ tokens/sec
+- Effective local capacity target: $\mu_{eff} = 60$ tokens/sec
 - Per-source token load: $T_{in}+T_{out}=725{,}000$
 
 Theoretical local-only source throughput:
 
 ```math
-\text{sources/day} = \frac{60 \cdot 86400}{725000} \approx 7.15
+\text{sources/day} = \frac{\mu_{eff} \cdot 86400}{725000} \approx 7.15
 ```
 
 ## Cloud Cost Model (Instantiated)
@@ -51,17 +70,17 @@ Theoretical local-only source throughput:
 Using the shared model in `00_cloud_cost_model.md`:
 
 - Hard-task cloud fraction: $r_h = 0.25$
-- Baseline peak demand: $\lambda_{peak}=145.45$ tokens/sec
-- Stress peak demand: $\lambda_{peak}=261.81$ tokens/sec
+- Baseline peak demand: $\lambda_{peak}=44.75$ tokens/sec
+- Stress peak demand: $\lambda_{peak}=80.56$ tokens/sec
 
 Overflow fractions:
 
 ```math
-r_{over,base}=\max\left(0,\frac{145.45-60}{145.45}\right)=0.5875
+r_{over,base}=\max\left(0,\frac{44.75-60}{44.75}\right)=0
 ```
 
 ```math
-r_{over,stress}=\max\left(0,\frac{261.81-60}{261.81}\right)=0.7708
+r_{over,stress}=\max\left(0,\frac{80.56-60}{80.56}\right)=0.2552
 ```
 
 Monthly cloud cost:
@@ -72,19 +91,49 @@ C_{month}=S\left(r_hc_h+(1-r_h)r_{over}c_e\right)
 
 with $c_e=0.33925$, $c_h=1.69625$.
 
-Baseline (`S=130`):
+Baseline (`S=40`):
 
 ```math
-C_{base}=130\left(0.25\cdot1.69625+0.75\cdot0.5875\cdot0.33925\right)=\$74.57/month
+C_{base}=40\left(0.25\cdot1.69625+0.75\cdot0\cdot0.33925\right)=\$16.96/month
 ```
 
-Stress (`S=234`):
+Stress (`S=72`):
 
 ```math
-C_{stress}=234\left(0.25\cdot1.69625+0.75\cdot0.7708\cdot0.33925\right)=\$145.12/month
+C_{stress}=72\left(0.25\cdot1.69625+0.75\cdot0.2552\cdot0.33925\right)=\$35.21/month
 ```
 
-Approximate annual cloud range from this model: `$895 - $1,741`.
+Approximate annual cloud range from this model: `$204 - $422`.
+
+## Test Deployment Snapshot Entries
+
+Use one row per pilot snapshot window (recommended: 24h to 168h windows).
+
+| Snapshot ID | Git Commit | Start (UTC) | End (UTC) | Model Profile | Context Tokens | Concurrency | Sources Completed | Tokens In | Tokens Out | Peak Arrival `lambda_peak_obs` (tok/s) | `mu_compute_obs` (tok/s) | `mu_memory_obs` (tok/s) | `f_fit_obs` | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | Cloud Spend (USD) | `q_accept_obs` | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+
+Derived fields for this architecture:
+
+```math
+\mu_{eff,obs}=f_{fit,obs}\cdot\min(\mu_{compute,obs},\mu_{memory,obs})
+```
+
+```math
+\rho_{obs}=\frac{\lambda_{peak,obs}}{\mu_{eff,obs}}, \quad r_{over,obs}=\max\left(0,\frac{\lambda_{peak,obs}-\mu_{eff,obs}}{\lambda_{peak,obs}}\right)
+```
+
+```math
+C_{month,obs}=S_{obs}\left(0.25\cdot c_h + 0.75\cdot r_{over,obs}\cdot c_e\right)
+```
+
+Model versus observed quick check:
+
+| Metric | Model | Observed |
+|---|---:|---:|
+| `mu_eff` (tok/s) | `60` |  |
+| `rho` at baseline | `0.75` |  |
+| Cloud cost/month baseline (USD) | `16.96` |  |
 
 ## Fit for Project
 
@@ -96,10 +145,10 @@ Approximate annual cloud range from this model: `$895 - $1,741`.
 
 ### Constraints
 
-- Highest expected queue pressure and overflow.
-- Less local headroom for larger context/model experiments.
+- Memory envelope is narrow, so context length and concurrency must stay tightly controlled.
+- Highest expected queue pressure and stress-window overflow.
 - Most sensitive to workload spikes and retry overhead.
 
 ## Recommended If
 
-Choose this if the priority is immediate start with minimal capex and you accept heavier cloud dependence plus slower local turnaround.
+Choose this if the priority is immediate start with minimal capex and you accept heavier cloud dependence plus strict local memory limits.

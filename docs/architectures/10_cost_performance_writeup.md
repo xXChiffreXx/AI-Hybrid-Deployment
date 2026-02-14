@@ -1,138 +1,139 @@
 # Cost-to-Performance Writeup
 
-This document compares the four machine-budget architectures for knowledge-base production.
+This document compares the four machine-budget architectures for Track A knowledge-base production.
 
-## 1) Industry-Standard Modeling Framework
+## 1) Industry-Standard Comparison
 
-### 1.1 Cloud Cost
+| Industry analysis mode | Common source baseline | Previous doc state | Current state |
+|---|---|---|---|
+| Unit economics (`$/source`, `$/accepted-item`) | FinOps unit economics | Partial | Included |
+| Throughput/latency/concurrency | MLPerf + Triton optimization practice | Included | Included |
+| Memory-first feasibility before throughput claims | TensorRT-LLM + HF optimization guidance | Missing | Included |
+| Tail-latency/SLO framing (not only average throughput) | SRE practice | Missing | Included |
+| Stress/scenario modeling | Capacity planning practice | Partial | Included |
 
-From `00_cloud_cost_model.md`:
+Relevant mode that was under-modeled before: memory-constrained throughput (`\mu_{eff}`) plus SLO/tail-latency behavior. Both are now explicit.
+
+## 2) Core Equations Used
+
+Cloud monthly cost:
 
 ```math
 C_{month}=S\left(r_hc_h+(1-r_h)r_{over}c_e\right)
 ```
 
-Where:
-- $S$: sources/month
-- $r_h$: hard-task cloud fraction
-- $r_{over}$: overflow fraction from local capacity limits
-- $c_e, c_h$: per-source economy and high-reasoning cloud costs
-
-### 1.2 Throughput and Utilization
-
-Effective local throughput is $\mu$ tokens/sec.
-
-Peak utilization:
+Memory-constrained effective throughput:
 
 ```math
-\rho = \frac{\lambda_{peak}}{\mu}
+\mu_{eff}=f_{fit}\cdot\min(\mu_{compute},\mu_{memory})
 ```
 
-Stability condition for queueing systems:
+Utilization and stability:
 
 ```math
-\rho < 1
+\rho = \frac{\lambda_{peak}}{\mu_{eff}}, \quad \rho < 1
 ```
 
-### 1.3 Source Completion Time
-
-Approximate local source completion time:
+Source completion time:
 
 ```math
-t_{source} \approx \frac{T_{in}+T_{out}}{\mu}
+t_{source} \approx \frac{T_{in}+T_{out}}{\mu_{eff}}
 ```
 
-### 1.4 CapEx Amortization (Power Ignored)
-
-Monthly amortized machine cost over $L$ months:
+CapEx amortization (power excluded by scope):
 
 ```math
-A_{month}=\frac{CapEx}{L}
+A_{month}=\frac{CapEx}{L}, \quad TC_{month}=A_{month}+C_{month}
 ```
 
-Total monthly cost:
+Quality-adjusted unit economics:
 
 ```math
-TC_{month}=A_{month}+C_{month}
+N_{accept}=S\cdot q_{accept}, \quad C_{accept}=\frac{TC_{month}}{N_{accept}}
 ```
 
-Cost per source:
+SLO queueing (directional, stable regime):
 
 ```math
-C_{source}=\frac{TC_{month}}{S}
-```
-
-## 2) Runtime Complexity (Big O)
-
-Let:
-- $N$: number of sources
-- $n$: average tokens per source
-- $M$: corpus size in retrieval index
-
-### 2.1 Pipeline Stages
-
-- Ingest + parse + chunk: $O(n)$
-- Embedding generation (fixed chunk size): $O(n)$
-- Retrieval query (ANN/HNSW-style): typically $O(\log M)$ average-case
-- Generation:
-  - Transformer prefill: $O(L_{in}^2)$
-  - Autoregressive decode: $O(L_{out}L_{ctx})$
-
-### 2.2 End-to-End Expected Complexity
-
-With fixed chunk/context caps (typical production setup), per-source runtime is effectively linear:
-
-```math
-T_{source}=O(n)
-```
-
-Corpus runtime becomes:
-
-```math
-T_{corpus}=O(Nn)
-```
-
-Without context controls (naive long-context growth), generation can trend toward superlinear behavior dominated by attention:
-
-```math
-T_{source}=O(n^2)
+W_q = \frac{\rho}{\mu_{eff}-\lambda}, \quad R = \frac{1}{\mu_{eff}} + W_q
 ```
 
 ## 3) Parameter Set Used for Comparison
 
 - $T_{in}=600{,}000$, $T_{out}=125{,}000$
-- $S=130$ baseline sources/month
-- $S_{stress}=234$ stress sources/month
+- $S=40$ baseline sources/month
+- $S_{stress}=72$ stress sources/month
 - $L=36$ months amortization
-- $\lambda_{peak,base}=145.45$, $\lambda_{peak,stress}=261.81$ tokens/sec
+- $\lambda_{peak,base}=44.75$, $\lambda_{peak,stress}=80.56$ tokens/sec
+- Memory safety factor: $\eta=0.85$
 
-## 4) Comparative Results
+## 4) Memory Envelope and Effective Throughput
 
-| Budget | $\mu$ (tokens/sec) | Local-only Sources/Day | $t_{source}$ (hours) | $\rho_{base}$ | $\rho_{stress}$ | Cloud Cost/Month (Base) | Cloud Cost/Month (Stress) | Amortized CapEx/Month | Total Cost/Month (Base) | Cost/Source (Base) |
+| Budget | Installed Memory Envelope | Usable Envelope ($\eta M_{avail}$) | $f_{fit}$ | $\mu_{eff}$ (tokens/sec) |
+|---|---:|---:|---:|---:|
+| `$599` | `16-24 GB` | `13.6-20.4 GB` | `0.95` | `60` |
+| `$2,500` | `64-96 GB` | `54.4-81.6 GB` | `1.00` | `90` |
+| `$5,000` | `128 GB` | `108.8 GB` | `1.00` | `180` |
+| `$7,500` | `192-256 GB` | `163.2-217.6 GB` | `1.00` | `320` |
+
+## 5) Comparative Results
+
+| Budget | $\mu_{eff}$ (tokens/sec) | Local-only Sources/Day | $t_{source}$ (hours) | $\rho_{base}$ | $\rho_{stress}$ | Cloud Cost/Month (Base) | Cloud Cost/Month (Stress) | Amortized CapEx/Month | Total Cost/Month (Base) | Cost/Source (Base) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `$599` | `60` | `7.15` | `3.36` | `2.42` | `4.36` | `$74.57` | `$145.12` | `$16.64` | `$91.21` | `$0.70` |
-| `$2,500` | `90` | `10.73` | `2.24` | `1.62` | `2.91` | `$57.55` | `$121.07` | `$69.44` | `$126.99` | `$0.98` |
-| `$5,000` | `180` | `21.46` | `1.12` | `0.81` | `1.45` | `$26.46` | `$69.46` | `$138.89` | `$165.35` | `$1.27` |
-| `$7,500` | `320` | `38.18` | `0.63` | `0.45` | `0.82` | `$17.64` | `$31.75` | `$208.33` | `$225.97` | `$1.74` |
+| `$599` | `60` | `7.15` | `3.36` | `0.75` | `1.34` | `$16.96` | `$35.21` | `$16.64` | `$33.60` | `$0.84` |
+| `$2,500` | `90` | `10.73` | `2.24` | `0.50` | `0.90` | `$13.57` | `$24.43` | `$69.44` | `$83.01` | `$2.08` |
+| `$5,000` | `180` | `21.46` | `1.12` | `0.25` | `0.45` | `$8.14` | `$14.66` | `$138.89` | `$147.03` | `$3.68` |
+| `$7,500` | `320` | `38.18` | `0.63` | `0.14` | `0.25` | `$5.43` | `$9.77` | `$208.33` | `$213.76` | `$5.34` |
 
-## 5) Interpretation
+## 6) Interpretation Against Industry Thresholds
 
-- The `$599` and `$2,500` options are cheapest in strict dollar terms, but both are unstable under modeled peak loads ($\rho>1$).
-- The `$5,000` option is stable at baseline and unstable in stress months; it is a balanced middle ground.
-- The `$7,500` option is stable in both baseline and stress scenarios and gives strongest long-term throughput headroom.
+- Stability threshold (`\rho < 1`): `$599` fails stress; `$2,500`, `$5,000`, and `$7,500` pass baseline and stress.
+- Tail-latency headroom target (`\rho \le 0.70`): `$2,500`, `$5,000`, and `$7,500` pass baseline; `$5,000` and `$7,500` pass stress.
+- Memory-fit risk: `$599` is the only class with materially narrow memory headroom and therefore the highest operational sensitivity.
 
-## 6) Recommendation by Decision Priority
+## 7) Additional Analysis Mode Still Worth Adding
 
-- If priority is lowest upfront cost: `$599` option.
-- If priority is best balance of cost and usable throughput: `$5,000` option.
-- If priority is long-term institutional throughput and lower queue risk: `$7,500` option.
+One relevant mode still not fully integrated into the monthly equation is storage/network growth cost for long-lived datasets and backups:
 
-## 7) Recalibration Procedure
+```math
+TC_{month}^{ext}=TC_{month}+C_{storage}+C_{network}
+```
+
+This is usually smaller than inference cost early, but becomes material as corpus size and backup retention expand.
+
+## 8) Recommendation by Decision Priority
+
+- If priority is minimum upfront spend and pilot-only operation: `$599`.
+- If priority is balanced throughput and cost: `$5,000`.
+- If priority is institutional durability, lower queue risk, and better SLO margin: `$7,500`.
+
+## 9) Recalibration Procedure
 
 After 2-4 weeks of production telemetry, update:
 
-1. $\mu$ from observed local tokens/sec.
-2. $r_h$ from actual hard-route fraction.
-3. $r_{over}$ from queue spill metrics.
-4. $T_{in}, T_{out}$ from observed medians.
-5. Recompute costs and $\rho$ using the same equations.
+1. $\mu_{compute}$ and $\mu_{memory}$ from observed load tests.
+2. $f_{fit}$ from observed memory pressure behavior.
+3. $r_h$ from actual hard-route fraction.
+4. $r_{over}$ from queue spill metrics.
+5. $T_{in}, T_{out}$ from observed medians.
+6. Recompute costs, utilization, and queue-risk indicators.
+
+## 10) Snapshot Roll-Up Table (Cross-Architecture)
+
+Populate this table from the per-architecture snapshot entries to compare real pilot performance.
+
+| Snapshot ID | Git Commit | Date (UTC) | Architecture | Model Profile | Context | Concurrency | Sources/Day Observed | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | Cloud Spend Window (USD) | `q_accept_obs` | Notes |
+|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| snap-002 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+
+Use this roll-up to replace model values with observed medians in Sections 3-6 after the pilot window.
+
+## 11) Sources
+
+- FinOps Unit Economics: https://www.finops.org/framework/capabilities/unit-economics/
+- AWS Well-Architected Cost Optimization: https://docs.aws.amazon.com/wellarchitected/latest/framework/a-cost-optimization.html
+- MLPerf Inference (datacenter scenarios): https://mlcommons.org/benchmarks/inference-datacenter/
+- NVIDIA Triton optimization: https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton-inference-server-2610/user-guide/docs/optimization.html
+- TensorRT-LLM memory reference: https://nvidia.github.io/TensorRT-LLM/reference/memory.html
+- Google SRE SLO chapter: https://sre.google/sre-book/service-level-objectives/

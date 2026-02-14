@@ -1,25 +1,32 @@
-# Shared Cloud Cost Model
+# Shared Cloud Cost + Capacity Model
 
-This model is used by all three budget architectures.
+This model is used by all budget architectures.
+
+It aligns with common industry analysis modes for inference systems:
+
+- unit economics (FinOps)
+- memory-feasibility constraints
+- bandwidth/compute bottleneck analysis
+- queueing and SLO/tail-latency behavior under bursty load
 
 ## 1) Project Scope Model
 
-Assumed semester operating profile for a small research team:
+Assumed pilot operating profile for a small research team:
 
 - Team size: `5` researchers
-- Sources ingested per researcher per week: `6`
-- Active weeks/month: `4.3`
+- Sources ingested per researcher per week (pilot): `2`
+- Active weeks/month: `4`
 
 Monthly source volume:
 
 ```math
-S = 5 \cdot 6 \cdot 4.3 = 129 \approx 130 \text{ sources/month (baseline)}
+S = 5 \cdot 2 \cdot 4 = 40 \text{ sources/month (baseline)}
 ```
 
-Stress-case volume:
+Stress-case source volume:
 
 ```math
-S_{stress} = 1.8 \cdot S = 234 \text{ sources/month}
+S_{stress} = 1.8 \cdot S = 72 \text{ sources/month}
 ```
 
 Per-source token envelope for Track A knowledge item generation:
@@ -27,26 +34,26 @@ Per-source token envelope for Track A knowledge item generation:
 - Input tokens: $T_{in} = 600{,}000$
 - Output tokens: $T_{out} = 125{,}000$
 
-## 2) Pricing Variables
+## 2) Cloud Unit Economics Variables
 
 Two cloud routes are modeled:
 
-- Economy route (e.g., mini model):
+- Economy route:
   - $p^{e}_{in} = 0.25$ USD / 1M input tokens
   - $p^{e}_{cache} = 0.025$ USD / 1M cached input tokens
   - $p^{e}_{out} = 2.00$ USD / 1M output tokens
-- High-reasoning route (frontier model):
+- High-reasoning route:
   - $p^{h}_{in} = 1.25$
   - $p^{h}_{cache} = 0.125$
   - $p^{h}_{out} = 10.00$
 
-Cache hit rate assumption:
+Cache hit-rate assumption:
 
 ```math
 h = 0.45
 ```
 
-Per-source cloud cost for each route:
+Per-source cloud cost by route:
 
 ```math
 c_e = \frac{(1-h)T_{in}p^{e}_{in} + hT_{in}p^{e}_{cache} + T_{out}p^{e}_{out}}{10^6} = 0.33925
@@ -58,44 +65,116 @@ c_h = \frac{(1-h)T_{in}p^{h}_{in} + hT_{in}p^{h}_{cache} + T_{out}p^{h}_{out}}{1
 
 Units: USD per source.
 
-## 3) Throughput -> Overflow Model
+## 3) Memory Feasibility Model
 
-Let local inference capacity be $\mu$ tokens/sec.
+Local throughput claims are valid only if the model and runtime state fit memory.
 
-Peak token demand is modeled as:
+Memory requirement decomposition:
+
+```math
+M_{req} = M_w + M_{kv} + M_{act} + M_{sys}
+```
+
+Weights memory (approximation):
+
+```math
+M_w \approx \frac{P \cdot b_w}{8}
+```
+
+where $P$ is number of parameters and $b_w$ is weight precision in bits.
+
+KV-cache memory (decoder-only, approximate):
+
+```math
+M_{kv} \approx 2 \cdot L \cdot n_{kv} \cdot d_h \cdot T_{ctx} \cdot B \cdot b_{kv}
+```
+
+where:
+
+- $L$: layers
+- $n_{kv}$: KV heads
+- $d_h$: head dimension
+- $T_{ctx}$: active tokens/request
+- $B$: concurrent active requests
+- $b_{kv}$: bytes/element
+
+Feasibility constraint:
+
+```math
+M_{req} \le \eta \cdot M_{avail}
+```
+
+with safety factor $\eta$ (planning value: `0.80` to `0.90`).
+
+## 4) Effective Service Rate (Compute + Bandwidth + Memory)
+
+Let:
+
+- $\mu_{compute}$ = compute-limited token service rate
+- $\mu_{memory}$ = memory-bandwidth-limited token service rate
+- $f_{fit} \in [0,1]$ = memory pressure multiplier (`1` if fit with headroom, `<1` if cache pressure/offload/fragmentation lowers realized throughput, `0` if local route disabled)
+
+```math
+\mu_{eff} = f_{fit} \cdot \min(\mu_{compute}, \mu_{memory})
+```
+
+A roofline-style bandwidth bound:
+
+```math
+\mu_{memory} \le \frac{BW_{mem}}{I_{bytes/token}}
+```
+
+where $BW_{mem}$ is effective memory bandwidth and $I_{bytes/token}$ is bytes moved per generated token.
+
+## 5) Arrival, Queue Pressure, and Overflow
+
+Peak demand model (tokens/sec):
 
 ```math
 \lambda_{peak} = \phi \cdot \frac{S(T_{in}+T_{out})}{30 \cdot 24 \cdot 3600}
 ```
 
-where $\phi = 4$ is a concentration factor for daytime/batch peaks.
+where $\phi = 4$ models daytime/batch concentration.
+
+Utilization:
+
+```math
+\rho = \frac{\lambda_{peak}}{\mu_{eff}}
+```
+
+Stability condition:
+
+```math
+\rho < 1
+```
 
 Overflow fraction of non-hard tasks to cloud:
 
 ```math
-r_{over} = \max\left(0, \frac{\lambda_{peak} - \mu}{\lambda_{peak}}\right)
+r_{over} = \max\left(0, \frac{\lambda_{peak} - \mu_{eff}}{\lambda_{peak}}\right)
 ```
 
-Fixed hard-task cloud fraction for a given architecture: $r_h$.
+Hard-task cloud fraction is policy-driven and fixed per architecture: $r_h$.
 
-## 4) Monthly Cloud Cost Equation
+## 6) Monthly Cloud Cost Equation
 
 ```math
 C_{month} = S \cdot \left(r_h c_h + (1-r_h)r_{over}c_e\right)
 ```
 
 Interpretation:
-- hard tasks always use cloud high-reasoning route,
-- overflow of remaining tasks uses economy cloud route.
 
-## 5) Baseline Constants for This Project
+- hard tasks always use the high-reasoning cloud route
+- overflow of remaining tasks uses the economy route
 
-- Baseline $S=130$: $\lambda_{peak}=145.45$ tokens/sec
-- Stress $S=234$: $\lambda_{peak}=261.81$ tokens/sec
+## 7) Baseline Constants for This Project
 
-## 6) Uncertainty Model (Optional)
+- Baseline $S=40$: $\lambda_{peak}=44.75$ tokens/sec
+- Stress $S=72$: $\lambda_{peak}=80.56$ tokens/sec
 
-If monthly source count is random with $S \sim \text{Poisson}(\mu_S)$, define per-source expected cloud cost $k$:
+## 8) Uncertainty Model (Optional)
+
+If monthly source count is random with $S \sim \text{Poisson}(\mu_S)$ and per-source expected cloud cost is $k$:
 
 ```math
 E[C] = \mu_S k, \quad \text{Var}(C) = \mu_S k^2
@@ -107,19 +186,9 @@ Approximate 95% interval:
 C \approx E[C] \pm 1.96\sqrt{\mu_S}k
 ```
 
-## 7) Recalibration Rule
+## 9) Token-Volume Sensitivity
 
-At end of each month, replace assumptions with telemetry:
-
-- replace $T_{in}, T_{out}$ with observed medians per source,
-- replace $h$ with observed cache hit rate,
-- replace $\phi$ with observed peak/average demand ratio,
-- replace $r_h$ with observed hard-route fraction,
-- recompute $C_{month}$ for the next planning cycle.
-
-## 8) Token-Volume Sensitivity
-
-If observed tokens per source differ from planning assumptions, define:
+If observed tokens/source differs from planning assumptions, define:
 
 ```math
 \alpha = \frac{T^{obs}_{in}+T^{obs}_{out}}{T_{in}+T_{out}}
@@ -131,4 +200,126 @@ Then cloud cost scales approximately linearly:
 C^{obs}_{month} \approx \alpha \cdot C_{month}
 ```
 
-Example: if real workloads are 3x the planned token envelope, expected cloud cost is approximately 3x.
+## 10) SLO-Oriented Latency Mode (Industry Add)
+
+To align with SLO practice, track at least p95/p99 latency in addition to mean throughput.
+
+For directional queue analysis in stable regime ($\lambda < \mu_{eff}$), M/M/1 gives:
+
+```math
+W_q = \frac{\rho}{\mu_{eff} - \lambda}, \quad R = \frac{1}{\mu_{eff}} + W_q
+```
+
+where:
+
+- $W_q$: expected queue wait per token
+- $R$: expected response time per token
+
+Planning target for burst tolerance:
+
+```math
+\rho_{target} \le 0.70
+```
+
+This is stricter than simple stability and helps protect tail latency.
+
+## 11) Quality-Adjusted Unit Economics Mode (Industry Add)
+
+Cost/token is not sufficient if quality differs across routes.
+
+Define accepted knowledge items/month:
+
+```math
+N_{accept} = S \cdot q_{accept}
+```
+
+where $q_{accept}$ is acceptance rate from rubric-based review.
+
+Quality-adjusted cost:
+
+```math
+C_{accept} = \frac{TC_{month}}{N_{accept}}
+```
+
+Use this when comparing local-heavy vs cloud-heavy policies that may have different output quality.
+
+## 12) Recalibration Rule
+
+At the end of each month:
+
+1. Replace $T_{in}, T_{out}$ with observed medians.
+2. Replace $h$ with observed cache hit rate.
+3. Replace $\phi$ with observed peak/average demand ratio.
+4. Replace $r_h$ with observed hard-route fraction.
+5. Re-estimate $\mu_{compute}$ and $\mu_{memory}$ from measured tokens/sec under production concurrency.
+6. Re-estimate memory pressure multiplier $f_{fit}$ from observed OOM, eviction, and KV pressure behavior.
+7. Recompute $C_{month}$ and $\rho$.
+
+## 13) Snapshot Data Entry Schema (for Real Numbers)
+
+Use this schema for every test deployment window so model values can be replaced with measured values.
+
+### 13.1 Required Snapshot Fields
+
+| Field | Unit | Purpose |
+|---|---|---|
+| `snapshot_id` | text | Unique deployment run identifier. |
+| `architecture_option` | text | One of: `$599`, `$2,500`, `$5,000`, `$7,500`. |
+| `git_commit` | text | Code revision used for this snapshot run. |
+| `window_start_utc` | datetime | Snapshot start time. |
+| `window_end_utc` | datetime | Snapshot end time. |
+| `sources_completed` | count | Throughput in completed knowledge-source jobs. |
+| `tokens_in` | tokens | Actual input token volume. |
+| `tokens_out` | tokens | Actual output token volume. |
+| `lambda_peak_obs` | tokens/sec | Observed peak arrival rate during the window. |
+| `mu_compute_obs` | tokens/sec | Compute-limited service rate from load test. |
+| `mu_memory_obs` | tokens/sec | Memory-bandwidth-limited service rate from load test. |
+| `f_fit_obs` | 0..1 | Memory pressure multiplier from real run behavior. |
+| `memory_peak_gb` | GB | Peak memory observed during run. |
+| `cache_hit_rate_obs` | 0..1 | Observed prompt/cache hit rate. |
+| `r_h_obs` | 0..1 | Observed hard-route fraction to high-reasoning cloud route. |
+| `cloud_spend_usd` | USD | Cloud spend for snapshot window. |
+| `q_accept_obs` | 0..1 | Accepted-item rate from rubric review. |
+| `accepted_items` | count | Accepted knowledge items in snapshot window. |
+
+### 13.2 Derived Snapshot Metrics
+
+```math
+T_{total,obs} = tokens_{in} + tokens_{out}
+```
+
+```math
+\mu_{eff,obs} = f_{fit,obs} \cdot \min(\mu_{compute,obs}, \mu_{memory,obs})
+```
+
+```math
+\rho_{obs} = \frac{\lambda_{peak,obs}}{\mu_{eff,obs}}
+```
+
+```math
+r_{over,obs} = \max\left(0, \frac{\lambda_{peak,obs} - \mu_{eff,obs}}{\lambda_{peak,obs}}\right)
+```
+
+```math
+c_{cloud/source,obs} = \frac{cloud\_spend\_usd}{sources_{completed}}
+```
+
+```math
+C_{accept,obs} = \frac{TC_{month,obs}}{accepted\_items}
+```
+
+### 13.3 Snapshot Row Template
+
+| snapshot_id | architecture_option | git_commit | window_start_utc | window_end_utc | sources_completed | tokens_in | tokens_out | lambda_peak_obs | mu_compute_obs | mu_memory_obs | f_fit_obs | mu_eff_obs | rho_obs | r_over_obs | memory_peak_gb | cache_hit_rate_obs | r_h_obs | cloud_spend_usd | q_accept_obs | accepted_items | notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+
+## 14) Reference Baselines Used
+
+- FinOps Unit Economics: https://www.finops.org/framework/capabilities/unit-economics/
+- AWS Well-Architected Cost Optimization: https://docs.aws.amazon.com/wellarchitected/latest/framework/a-cost-optimization.html
+- MLPerf Inference scenarios and metrics: https://mlcommons.org/benchmarks/inference-datacenter/
+- NVIDIA Triton optimization (throughput/latency/concurrency): https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton-inference-server-2610/user-guide/docs/optimization.html
+- TensorRT-LLM memory decomposition and KV behavior: https://nvidia.github.io/TensorRT-LLM/reference/memory.html
+- Google SRE SLO guidance (percentiles/error budgets): https://sre.google/sre-book/service-level-objectives/
+- Roofline model background: https://cacm.acm.org/research/roofline-an-insightful-visual-performance-model-for-multicore-architectures/
