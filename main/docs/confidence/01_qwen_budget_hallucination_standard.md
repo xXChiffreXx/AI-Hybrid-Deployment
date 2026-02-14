@@ -35,7 +35,7 @@ For governance, this repository defines a deployment standard from observed, ver
 For each budget tier `b`, calculate over the most recent `K` reporting windows (recommended: `K = 3`):
 
 ```math
-h_{std,b}=\operatorname{median}(h_{obs,w}),\quad w \in W_b
+h_{std,b}=med(h_{obs,w}),\quad w \in W_b
 ```
 
 ```math
@@ -46,6 +46,7 @@ Interpretation:
 
 - `h_std,b`: standard operating hallucination rate for that budget/model tier
 - `h_guard,b`: guardrail rate for risk-sensitive gating
+- `med(...)`: sample median across the selected windows
 
 ## 5) Quality Gate Use
 
