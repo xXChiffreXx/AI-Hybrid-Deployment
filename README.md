@@ -1,22 +1,26 @@
 # AI Hybrid Deployment
 
-This repository defines deployment architecture for the Polypharmacy research program.
+This repository defines software architecture and budget-model documentation for the Polypharmacy research program.
 
-The implementation is intentionally OS-agnostic at the service layer:
+## Software Architecture
 
-- `llama-server` provides the local OpenAI-compatible endpoint.
-- A gateway applies routing, budgets, and fallback.
-- Track A research artifacts are stored in a canonical structured store (`SQLite + Parquet`).
-- Obsidian remains a projection/index layer, not source-of-truth.
+Implementation-oriented architecture docs are in `docs/architecture`:
 
-## Architecture Options
+- [`docs/architecture/README.md`](docs/architecture/README.md)
+- [`docs/architecture/00_system_architecture.md`](docs/architecture/00_system_architecture.md)
+- [`docs/architecture/01_runtime_routing_and_invocation.md`](docs/architecture/01_runtime_routing_and_invocation.md)
+- [`docs/architecture/02_deployment_and_operations.md`](docs/architecture/02_deployment_and_operations.md)
 
-- [`docs/architectures/00_budget_599.md`](docs/architectures/00_budget_599.md)
-- [`docs/architectures/01_budget_2500.md`](docs/architectures/01_budget_2500.md)
-- [`docs/architectures/02_budget_5000.md`](docs/architectures/02_budget_5000.md)
-- [`docs/architectures/03_budget_7500.md`](docs/architectures/03_budget_7500.md)
-- Shared model: [`docs/architectures/00_cloud_cost_model.md`](docs/architectures/00_cloud_cost_model.md)
-- Cost/performance analysis: [`docs/architectures/10_cost_performance_writeup.md`](docs/architectures/10_cost_performance_writeup.md)
+## Budget and Cost Modeling
+
+Budget-tier comparisons and shared cost equations are in `docs/budgets`:
+
+- [`docs/budgets/00_budget_599.md`](docs/budgets/00_budget_599.md)
+- [`docs/budgets/01_budget_2500.md`](docs/budgets/01_budget_2500.md)
+- [`docs/budgets/02_budget_5000.md`](docs/budgets/02_budget_5000.md)
+- [`docs/budgets/03_budget_7500.md`](docs/budgets/03_budget_7500.md)
+- Shared model: [`docs/budgets/00_cloud_cost_model.md`](docs/budgets/00_cloud_cost_model.md)
+- Cost/performance analysis: [`docs/budgets/10_cost_performance_writeup.md`](docs/budgets/10_cost_performance_writeup.md)
 
 ## Quick Comparison (Industry-Style)
 
@@ -29,12 +33,12 @@ The implementation is intentionally OS-agnostic at the service layer:
 
 Notes:
 
-- Costs are model-driven estimates from workload assumptions in [`docs/architectures/00_cloud_cost_model.md`](docs/architectures/00_cloud_cost_model.md).
+- Costs are model-driven estimates from workload assumptions in [`docs/budgets/00_cloud_cost_model.md`](docs/budgets/00_cloud_cost_model.md).
 - Current modeled workload baseline is `40` sources/month (stress scenario `72`/month).
 - Throughput is memory-constrained effective throughput (`\mu_{eff}`), not theoretical peak.
 - Costs scale approximately linearly with token volume.
-- Web-aware enrichment policy (DB-first, local time budget, single cloud fill escalation) is modeled in `docs/architectures/00_cloud_cost_model.md`.
-- Snapshot data-entry templates are included in each architecture doc and in the shared schema section of [`docs/architectures/00_cloud_cost_model.md`](docs/architectures/00_cloud_cost_model.md).
+- Web-aware enrichment policy (DB-first, local time budget, single cloud fill escalation) is modeled in `docs/budgets/00_cloud_cost_model.md`.
+- Snapshot data-entry templates are included in each budget doc and in the shared schema section of [`docs/budgets/00_cloud_cost_model.md`](docs/budgets/00_cloud_cost_model.md).
 
 ## Knowledge Base Spec
 
