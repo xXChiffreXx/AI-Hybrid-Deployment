@@ -39,6 +39,7 @@ For MVP, orchestration and local resolution are treated as one logical service:
 - Batched unresolved-field resolution across entries with overlapping source context.
 - Explicit local time budget (`tau_local`) on batched unresolved-field resolution before cloud fallback.
 - Canonical store in `SQLite + Parquet`, not markdown.
+- The `SQLite + Parquet` references in this repository are integration examples; production physical schema should be driven by brittleness-analysis requirements.
 - Tool-agnostic read-only views over canonical data.
 - Cloud responses must re-enter through the local write path with provenance.
 

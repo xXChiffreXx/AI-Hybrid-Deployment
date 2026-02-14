@@ -89,22 +89,18 @@ Use a structured store as system-of-record:
 - `SQLite` (transactional metadata + relational links)
 - `Parquet` (large analysis tables, metrics, and claim/evidence matrices)
 
+These table/file examples define integration expectations only. They are not a fixed production schema; physical schema should follow brittleness-analysis requirements.
+
 Recommended canonical layout:
 
 - `kb_store/sqlite/kb.sqlite`
-- `kb_store/parquet/items.parquet`
-- `kb_store/parquet/claims.parquet`
-- `kb_store/parquet/evidence_links.parquet`
-- `kb_store/parquet/benchmarks.parquet`
-- `kb_store/parquet/failures.parquet`
+- `kb_store/parquet/*.parquet` (for example: `items.parquet`, `claims.parquet`, `metrics.parquet`)
 
 Minimum table groups:
 
 - `items`: one row per `TA-*`/`TB-*` artifact
-- `claims`: normalized claim rows for verification
-- `evidence_links`: claim-to-source links with support label
-- `runs`: evaluation run metadata (`run_id`, dataset snapshot, code ref)
-- `metrics`: benchmark/subgroup/sensitivity metrics
+- `claims` + `evidence_links`: normalized claims and claim-to-source support labels
+- `runs` + `metrics`: reproducibility metadata and evaluation outcomes
 
 Markdown notes, if used, should be generated read-only views from this store, not hand-maintained source data.
 
@@ -143,32 +139,11 @@ Every item row in the canonical store must carry:
 - `view_track` (consumer grouping label, e.g. `track_a` or `track_b`)
 - `view_logic_group` (logical bucket, e.g. `cohort_logic`, `baseline_benchmarks`)
 
-### Logical group map
+Use deterministic, human-readable `view_logic_group` names and keep the mapping table in code/config (not handwritten notes). Example mappings:
 
-Track A groups:
-
-- `TA-01`: `research_questions`
-- `TA-02`: `cohort_logic`
-- `TA-03`: `data_dictionary_mapping`
-- `TA-04`: `data_quality_leakage`
-- `TA-05`: `endpoint_definitions`
-- `TA-06`: `feature_specs`
-- `TA-07`: `baseline_benchmarks`
-- `TA-08`: `proposed_model_benchmarks`
-- `TA-09`: `subgroup_sensitivity`
-- `TA-10`: `risk_brittleness_cases`
-- `TA-11`: `counterfactual_simulation`
-- `TA-12`: `causal_effect_notes`
-- `TA-13`: `failure_taxonomy`
-- `TA-14`: `deployment_readiness`
-
-Track B groups:
-
-- `TB-01`: `workflow_prompt_cards`
-- `TB-02`: `architecture_notes`
-- `TB-03`: `cost_capacity_snapshots`
-- `TB-04`: `evaluation_result_notes`
-- `TB-05`: `routing_decision_records`
+- `TA-02` -> `cohort_logic`
+- `TA-10` -> `risk_brittleness_cases`
+- `TB-03` -> `cost_capacity_snapshots`
 
 ### Derived view strategy
 
