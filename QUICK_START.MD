@@ -2,7 +2,7 @@
 
 ## Why this exists
 
-This brief is for reviewers who worked with a prior version of the pharmacology/polypharmacy research workflow and need a fast orientation to the current architecture direction.
+This brief is for reviewers who worked with a prior version of the pharmacology/polypharmacy research workflow and had difficulties with implementing LLM data curation.
 
 Primary entry document:
 
@@ -18,9 +18,7 @@ Primary entry document:
 
 - Not a runnable software stack yet.
 - Not a deployment package.
-- Not patient-specific clinical decision software.
-
-If you are looking for executable services (gateway, adapters, manifests), those are intentionally listed as future implementation artifacts.
+- Not a defined database structure. Output produced by this system is subject to the structure imposed by the main project's needs.
 
 ## 5-minute orientation path
 
@@ -65,13 +63,6 @@ This repository currently documents architecture and cost models only. It does n
 - Ollama/cloud adapters
 - deployment manifests
 - operational scripts (backup/restore/metrics export)
-
-## Suggested review framing for faculty feedback
-
-- Is the local-first plus cloud-fallback policy appropriate for the research setting?
-- Are trust boundaries and provenance requirements sufficient for publication-grade reproducibility?
-- Are completion/termination rules realistic for your summer workflow volume?
-- Are budget-tier assumptions aligned with expected source volume and team usage?
 
 ## Terms used repeatedly
 
