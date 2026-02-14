@@ -1,8 +1,12 @@
-# Professor Handoff Brief (Summer-to-Current AI Integration)
+# QUICK START
 
 ## Why this exists
 
 This brief is for reviewers who worked with a prior version of the pharmacology/polypharmacy research workflow and need a fast orientation to the current architecture direction.
+
+Primary entry document:
+
+- [`main/README.md`](main/README.md)
 
 ## What this repository is
 
@@ -20,11 +24,11 @@ If you are looking for executable services (gateway, adapters, manifests), those
 
 ## 5-minute orientation path
 
-1. Read `/README.md` for scope and budget comparison.
-2. Read `/docs/architecture/README.md` for architecture document map and MVP scope note.
-3. Read `/docs/architecture/00_system_architecture.md` for system boundaries and trust model.
-4. Read `/docs/architecture/01_runtime_routing_and_invocation.md` for end-to-end runtime flow.
-5. Read `/KNOWLEDGE_BASE_ITEMS.md` for output artifact schema and quality gates.
+1. Read [`main/README.md`](main/README.md) for scope and budget comparison.
+2. Read [`main/docs/architecture/README.md`](main/docs/architecture/README.md) for architecture document map and MVP scope note.
+3. Read [`main/docs/architecture/00_system_architecture.md`](main/docs/architecture/00_system_architecture.md) for system boundaries and trust model.
+4. Read [`main/docs/architecture/01_runtime_routing_and_invocation.md`](main/docs/architecture/01_runtime_routing_and_invocation.md) for end-to-end runtime flow.
+5. Read [`main/KNOWLEDGE_BASE_ITEMS.md`](main/KNOWLEDGE_BASE_ITEMS.md) for output artifact schema and quality gates.
 
 ## Plain-language MVP workflow (current design intent)
 
@@ -76,4 +80,3 @@ This repository currently documents architecture and cost models only. It does n
 - `q_min`: minimum confidence threshold for accepting local fill output.
 - `mu_eff`: memory-constrained effective token throughput.
 - `rho`: utilization ratio (`lambda_peak / mu_eff`), where values near or above `1` indicate queue risk.
-

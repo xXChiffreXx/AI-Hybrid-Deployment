@@ -6,7 +6,7 @@ This repository defines software architecture and budget-model documentation for
 
 If you are reviewing this after working with a prior workflow version, begin with:
 
-- [`docs/HANDOFF_FOR_PROFESSOR.md`](docs/HANDOFF_FOR_PROFESSOR.md)
+- [`../QUICK_START.MD`](../QUICK_START.MD)
 
 ## Software Architecture
 
