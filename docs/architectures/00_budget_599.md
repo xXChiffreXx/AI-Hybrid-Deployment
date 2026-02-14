@@ -37,52 +37,64 @@ Service layer is OS-agnostic because inference is standardized through `llama-se
 
 ## Capacity Assumption
 
-- Effective local capacity target: \(\mu = 60\) tokens/sec
-- Per-source token load: \(T_{in}+T_{out}=725{,}000\)
+- Effective local capacity target: $\mu = 60$ tokens/sec
+- Per-source token load: $T_{in}+T_{out}=725{,}000$
 
 Theoretical local-only source throughput:
 
-\[
+$$
+
 \text{sources/day} = \frac{60 \cdot 86400}{725000} \approx 7.15
-\]
+
+$$
 
 ## Cloud Cost Model (Instantiated)
 
 Using the shared model in `00_cloud_cost_model.md`:
 
-- Hard-task cloud fraction: \(r_h = 0.25\)
-- Baseline peak demand: \(\lambda_{peak}=145.45\) tokens/sec
-- Stress peak demand: \(\lambda_{peak}=261.81\) tokens/sec
+- Hard-task cloud fraction: $r_h = 0.25$
+- Baseline peak demand: $\lambda_{peak}=145.45$ tokens/sec
+- Stress peak demand: $\lambda_{peak}=261.81$ tokens/sec
 
 Overflow fractions:
 
-\[
-r_{over,base}=\max\left(0,\frac{145.45-60}{145.45}\right)=0.5875
-\]
+$$
 
-\[
+r_{over,base}=\max\left(0,\frac{145.45-60}{145.45}\right)=0.5875
+
+$$
+
+$$
+
 r_{over,stress}=\max\left(0,\frac{261.81-60}{261.81}\right)=0.7708
-\]
+
+$$
 
 Monthly cloud cost:
 
-\[
-C_{month}=S\left(r_hc_h+(1-r_h)r_{over}c_e\right)
-\]
+$$
 
-with \(c_e=0.33925\), \(c_h=1.69625\).
+C_{month}=S\left(r_hc_h+(1-r_h)r_{over}c_e\right)
+
+$$
+
+with $c_e=0.33925$, $c_h=1.69625$.
 
 Baseline (`S=130`):
 
-\[
+$$
+
 C_{base}=130\left(0.25\cdot1.69625+0.75\cdot0.5875\cdot0.33925\right)=\$74.57/month
-\]
+
+$$
 
 Stress (`S=234`):
 
-\[
+$$
+
 C_{stress}=234\left(0.25\cdot1.69625+0.75\cdot0.7708\cdot0.33925\right)=\$145.12/month
-\]
+
+$$
 
 Approximate annual cloud range from this model: `$895 - $1,741`.
 
