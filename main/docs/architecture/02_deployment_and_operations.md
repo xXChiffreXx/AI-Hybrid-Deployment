@@ -90,11 +90,4 @@ If unresolved fields remain after configured retry limits, terminate as failed a
 
 ## Implementation Gap Register
 
-Current repository gaps relative to this architecture:
-
-- no resolver-gateway service code
-- no Ollama/cloud CLI adapters
-- no deployment manifests or compose files
-- no operational scripts for snapshot, restore, or metric export
-
 This repository currently contains architecture documentation and budget analysis, but not a runnable MVP stack yet.
