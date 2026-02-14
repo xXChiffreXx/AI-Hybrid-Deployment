@@ -8,11 +8,9 @@ This document compares the four machine-budget architectures for knowledge-base 
 
 From `00_cloud_cost_model.md`:
 
-$$
-
+```math
 C_{month}=S\left(r_hc_h+(1-r_h)r_{over}c_e\right)
-
-$$
+```
 
 Where:
 - $S$: sources/month
@@ -26,55 +24,43 @@ Effective local throughput is $\mu$ tokens/sec.
 
 Peak utilization:
 
-$$
-
+```math
 \rho = \frac{\lambda_{peak}}{\mu}
-
-$$
+```
 
 Stability condition for queueing systems:
 
-$$
-
+```math
 \rho < 1
-
-$$
+```
 
 ### 1.3 Source Completion Time
 
 Approximate local source completion time:
 
-$$
-
+```math
 t_{source} \approx \frac{T_{in}+T_{out}}{\mu}
-
-$$
+```
 
 ### 1.4 CapEx Amortization (Power Ignored)
 
 Monthly amortized machine cost over $L$ months:
 
-$$
-
+```math
 A_{month}=\frac{CapEx}{L}
-
-$$
+```
 
 Total monthly cost:
 
-$$
-
+```math
 TC_{month}=A_{month}+C_{month}
-
-$$
+```
 
 Cost per source:
 
-$$
-
+```math
 C_{source}=\frac{TC_{month}}{S}
-
-$$
+```
 
 ## 2) Runtime Complexity (Big O)
 
@@ -96,27 +82,21 @@ Let:
 
 With fixed chunk/context caps (typical production setup), per-source runtime is effectively linear:
 
-$$
-
+```math
 T_{source}=O(n)
-
-$$
+```
 
 Corpus runtime becomes:
 
-$$
-
+```math
 T_{corpus}=O(Nn)
-
-$$
+```
 
 Without context controls (naive long-context growth), generation can trend toward superlinear behavior dominated by attention:
 
-$$
-
+```math
 T_{source}=O(n^2)
-
-$$
+```
 
 ## 3) Parameter Set Used for Comparison
 

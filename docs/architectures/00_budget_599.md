@@ -42,11 +42,9 @@ Service layer is OS-agnostic because inference is standardized through `llama-se
 
 Theoretical local-only source throughput:
 
-$$
-
+```math
 \text{sources/day} = \frac{60 \cdot 86400}{725000} \approx 7.15
-
-$$
+```
 
 ## Cloud Cost Model (Instantiated)
 
@@ -58,43 +56,33 @@ Using the shared model in `00_cloud_cost_model.md`:
 
 Overflow fractions:
 
-$$
-
+```math
 r_{over,base}=\max\left(0,\frac{145.45-60}{145.45}\right)=0.5875
+```
 
-$$
-
-$$
-
+```math
 r_{over,stress}=\max\left(0,\frac{261.81-60}{261.81}\right)=0.7708
-
-$$
+```
 
 Monthly cloud cost:
 
-$$
-
+```math
 C_{month}=S\left(r_hc_h+(1-r_h)r_{over}c_e\right)
-
-$$
+```
 
 with $c_e=0.33925$, $c_h=1.69625$.
 
 Baseline (`S=130`):
 
-$$
-
+```math
 C_{base}=130\left(0.25\cdot1.69625+0.75\cdot0.5875\cdot0.33925\right)=\$74.57/month
-
-$$
+```
 
 Stress (`S=234`):
 
-$$
-
+```math
 C_{stress}=234\left(0.25\cdot1.69625+0.75\cdot0.7708\cdot0.33925\right)=\$145.12/month
-
-$$
+```
 
 Approximate annual cloud range from this model: `$895 - $1,741`.
 

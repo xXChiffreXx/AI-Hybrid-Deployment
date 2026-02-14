@@ -12,19 +12,15 @@ Assumed semester operating profile for a small research team:
 
 Monthly source volume:
 
-$$
-
+```math
 S = 5 \cdot 6 \cdot 4.3 = 129 \approx 130 \text{ sources/month (baseline)}
-
-$$
+```
 
 Stress-case volume:
 
-$$
-
+```math
 S_{stress} = 1.8 \cdot S = 234 \text{ sources/month}
-
-$$
+```
 
 Per-source token envelope for Track A knowledge item generation:
 
@@ -46,25 +42,19 @@ Two cloud routes are modeled:
 
 Cache hit rate assumption:
 
-$$
-
+```math
 h = 0.45
-
-$$
+```
 
 Per-source cloud cost for each route:
 
-$$
-
+```math
 c_e = \frac{(1-h)T_{in}p^{e}_{in} + hT_{in}p^{e}_{cache} + T_{out}p^{e}_{out}}{10^6} = 0.33925
+```
 
-$$
-
-$$
-
+```math
 c_h = \frac{(1-h)T_{in}p^{h}_{in} + hT_{in}p^{h}_{cache} + T_{out}p^{h}_{out}}{10^6} = 1.69625
-
-$$
+```
 
 Units: USD per source.
 
@@ -74,31 +64,25 @@ Let local inference capacity be $\mu$ tokens/sec.
 
 Peak token demand is modeled as:
 
-$$
-
+```math
 \lambda_{peak} = \phi \cdot \frac{S(T_{in}+T_{out})}{30 \cdot 24 \cdot 3600}
-
-$$
+```
 
 where $\phi = 4$ is a concentration factor for daytime/batch peaks.
 
 Overflow fraction of non-hard tasks to cloud:
 
-$$
-
+```math
 r_{over} = \max\left(0, \frac{\lambda_{peak} - \mu}{\lambda_{peak}}\right)
-
-$$
+```
 
 Fixed hard-task cloud fraction for a given architecture: $r_h$.
 
 ## 4) Monthly Cloud Cost Equation
 
-$$
-
+```math
 C_{month} = S \cdot \left(r_h c_h + (1-r_h)r_{over}c_e\right)
-
-$$
+```
 
 Interpretation:
 - hard tasks always use cloud high-reasoning route,
@@ -113,19 +97,15 @@ Interpretation:
 
 If monthly source count is random with $S \sim \text{Poisson}(\mu_S)$, define per-source expected cloud cost $k$:
 
-$$
-
+```math
 E[C] = \mu_S k, \quad \text{Var}(C) = \mu_S k^2
-
-$$
+```
 
 Approximate 95% interval:
 
-$$
-
+```math
 C \approx E[C] \pm 1.96\sqrt{\mu_S}k
-
-$$
+```
 
 ## 7) Recalibration Rule
 
@@ -141,18 +121,14 @@ At end of each month, replace assumptions with telemetry:
 
 If observed tokens per source differ from planning assumptions, define:
 
-$$
-
+```math
 \alpha = \frac{T^{obs}_{in}+T^{obs}_{out}}{T_{in}+T_{out}}
-
-$$
+```
 
 Then cloud cost scales approximately linearly:
 
-$$
-
+```math
 C^{obs}_{month} \approx \alpha \cdot C_{month}
-
-$$
+```
 
 Example: if real workloads are 3x the planned token envelope, expected cloud cost is approximately 3x.
