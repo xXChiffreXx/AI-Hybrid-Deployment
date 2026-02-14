@@ -20,12 +20,12 @@ The implementation is intentionally OS-agnostic at the service layer:
 
 ## Quick Comparison (Industry-Style)
 
-| Budget | Effective Throughput ($\mu_{eff}$) | Usable Memory Envelope ($\eta M_{avail}$) | Stability (`\rho base / stress`) | Est. Cloud Cost / Month (Base) | Est. Cloud Cost / Month (Stress) |
-|---|---:|---:|---:|---:|---:|
-| `$599` | `~60 tok/s` | `13.6-20.4 GB` | `0.75 / 1.34` | `$16.96` | `$35.21` |
-| `$2,500` | `~90 tok/s` | `54.4-81.6 GB` | `0.50 / 0.90` | `$13.57` | `$24.43` |
-| `$5,000` | `~180 tok/s` | `108.8 GB` | `0.25 / 0.45` | `$8.14` | `$14.66` |
-| `$7,500` | `~320 tok/s` | `163.2-217.6 GB` | `0.14 / 0.25` | `$5.43` | `$9.77` |
+| Budget   | Effective Throughput ($\mu_{eff}$) | Usable Memory Envelope ($\eta M_{avail}$) | Stability (`\rho base / stress`) | Est. Cloud Cost / Month (Base) | Est. Cloud Cost / Month (Stress) |
+| -------- | ---------------------------------: | ----------------------------------------: | -------------------------------: | -----------------------------: | -------------------------------: |
+| `$599`   |                        `~60 tok/s` |                            `13.6-20.4 GB` |                    `0.75 / 1.34` |                       `$16.96` |                         `$35.21` |
+| `$2,500` |                        `~90 tok/s` |                            `54.4-81.6 GB` |                    `0.50 / 0.90` |                       `$13.57` |                         `$24.43` |
+| `$5,000` |                       `~180 tok/s` |                                `108.8 GB` |                    `0.25 / 0.45` |                        `$8.14` |                         `$14.66` |
+| `$7,500` |                       `~320 tok/s` |                          `163.2-217.6 GB` |                    `0.14 / 0.25` |                        `$5.43` |                          `$9.77` |
 
 Notes:
 

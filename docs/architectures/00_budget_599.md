@@ -1,4 +1,4 @@
-# Architecture Option D: $599 Machine Budget (Education M4 Base + 10GbE Add-On)
+# Architecture Option D: `$599` Machine Budget (Education M4 Base + 10GbE Add-On)
 
 ## Goal
 
@@ -113,8 +113,8 @@ Approximate annual cloud range from this model: `$204 - $422`.
 Use one row per pilot snapshot window (recommended: 24h to 168h windows).
 
 | Snapshot ID | Git Commit | Start (UTC) | End (UTC) | Model Profile | Context Tokens | Concurrency | Sources Completed | Tokens In | Tokens Out | Peak Arrival `lambda_peak_obs` (tok/s) | `mu_compute_obs` (tok/s) | `mu_memory_obs` (tok/s) | `f_fit_obs` | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | `h_db_obs` | `local_time_budget_sec` | `p_escalate_obs` | `c_fill_obs` (USD/call) | `cloud_fill_calls_obs` | `avg_missing_fields_obs` | `local_cli_calls_obs` | Cloud Spend (USD) | `q_accept_obs` | Notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| ----------- | ---------- | ----------- | --------- | ------------- | -------------- | ----------- | ----------------- | --------- | ---------- | -------------------------------------- | ------------------------ | ----------------------- | ----------- | -------------------- | --------- | ------------ | ---------------- | ---------- | ----------------------- | ---------------- | ----------------------- | ---------------------- | ------------------------ | --------------------- | ----------------- | -------------- | ----- |
+| snap-001    |            |             |           |               |                |             |                   |           |            |                                        |                          |                         |             |                      |           |              |                  |            |                         |                  |                         |                        |                          |                       |                   |                |       |
 
 Derived fields for this architecture:
 
@@ -136,11 +136,11 @@ C_{month,obs}^{web}=S_{obs}\left(0.25\cdot c_h + 0.75\left(r_{over,obs}\cdot c_e
 
 Model versus observed quick check:
 
-| Metric | Model | Observed |
-|---|---:|---:|
-| `mu_eff` (tok/s) | `60` |  |
-| `rho` at baseline | `0.75` |  |
-| Cloud cost/month baseline (USD) | `16.96` |  |
+| Metric                          |   Model | Observed |
+| ------------------------------- | ------: | -------: |
+| `mu_eff` (tok/s)                |    `60` |          |
+| `rho` at baseline               |  `0.75` |          |
+| Cloud cost/month baseline (USD) | `16.96` |          |
 
 ## Fit for Project
 

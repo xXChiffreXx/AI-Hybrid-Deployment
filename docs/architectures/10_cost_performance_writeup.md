@@ -4,13 +4,13 @@ This document compares the four machine-budget architectures for Track A knowled
 
 ## 1) Industry-Standard Comparison
 
-| Industry analysis mode | Common source baseline | Previous doc state | Current state |
-|---|---|---|---|
-| Unit economics (`$/source`, `$/accepted-item`) | FinOps unit economics | Partial | Included |
-| Throughput/latency/concurrency | MLPerf + Triton optimization practice | Included | Included |
-| Memory-first feasibility before throughput claims | TensorRT-LLM + HF optimization guidance | Missing | Included |
-| Tail-latency/SLO framing (not only average throughput) | SRE practice | Missing | Included |
-| Stress/scenario modeling | Capacity planning practice | Partial | Included |
+| Industry analysis mode                                 | Common source baseline                  | Previous doc state | Current state |
+| ------------------------------------------------------ | --------------------------------------- | ------------------ | ------------- |
+| Unit economics (`$/source`, `$/accepted-item`)         | FinOps unit economics                   | Partial            | Included      |
+| Throughput/latency/concurrency                         | MLPerf + Triton optimization practice   | Included           | Included      |
+| Memory-first feasibility before throughput claims      | TensorRT-LLM + HF optimization guidance | Missing            | Included      |
+| Tail-latency/SLO framing (not only average throughput) | SRE practice                            | Missing            | Included      |
+| Stress/scenario modeling                               | Capacity planning practice              | Partial            | Included      |
 
 Relevant mode that was under-modeled before: memory-constrained throughput (`\mu_{eff}`) plus SLO/tail-latency behavior. Both are now explicit.
 
@@ -85,21 +85,21 @@ W_q = \frac{\rho}{\mu_{eff}-\lambda}, \quad R = \frac{1}{\mu_{eff}} + W_q
 
 ## 4) Memory Envelope and Effective Throughput
 
-| Budget | Installed Memory Envelope | Usable Envelope ($\eta M_{avail}$) | $f_{fit}$ | $\mu_{eff}$ (tokens/sec) |
-|---|---:|---:|---:|---:|
-| `$599` | `16-24 GB` | `13.6-20.4 GB` | `0.95` | `60` |
-| `$2,500` | `64-96 GB` | `54.4-81.6 GB` | `1.00` | `90` |
-| `$5,000` | `128 GB` | `108.8 GB` | `1.00` | `180` |
-| `$7,500` | `192-256 GB` | `163.2-217.6 GB` | `1.00` | `320` |
+| Budget   | Installed Memory Envelope | Usable Envelope ($\eta M_{avail}$) | $f_{fit}$ | $\mu_{eff}$ (tokens/sec) |
+| -------- | ------------------------: | ---------------------------------: | --------: | -----------------------: |
+| `$599`   |                `16-24 GB` |                     `13.6-20.4 GB` |    `0.95` |                     `60` |
+| `$2,500` |                `64-96 GB` |                     `54.4-81.6 GB` |    `1.00` |                     `90` |
+| `$5,000` |                  `128 GB` |                         `108.8 GB` |    `1.00` |                    `180` |
+| `$7,500` |              `192-256 GB` |                   `163.2-217.6 GB` |    `1.00` |                    `320` |
 
 ## 5) Comparative Results (One-Pass Baseline)
 
-| Budget | $\mu_{eff}$ (tokens/sec) | Local-only Sources/Day | $t_{source}$ (hours) | $\rho_{base}$ | $\rho_{stress}$ | Cloud Cost/Month (Base) | Cloud Cost/Month (Stress) | Amortized CapEx/Month | Total Cost/Month (Base) | Cost/Source (Base) |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `$599` | `60` | `7.15` | `3.36` | `0.75` | `1.34` | `$16.96` | `$35.21` | `$16.64` | `$33.60` | `$0.84` |
-| `$2,500` | `90` | `10.73` | `2.24` | `0.50` | `0.90` | `$13.57` | `$24.43` | `$69.44` | `$83.01` | `$2.08` |
-| `$5,000` | `180` | `21.46` | `1.12` | `0.25` | `0.45` | `$8.14` | `$14.66` | `$138.89` | `$147.03` | `$3.68` |
-| `$7,500` | `320` | `38.18` | `0.63` | `0.14` | `0.25` | `$5.43` | `$9.77` | `$208.33` | `$213.76` | `$5.34` |
+| Budget   | $\mu_{eff}$ (tokens/sec) | Local-only Sources/Day | $t_{source}$ (hours) | $\rho_{base}$ | $\rho_{stress}$ | Cloud Cost/Month (Base) | Cloud Cost/Month (Stress) | Amortized CapEx/Month | Total Cost/Month (Base) | Cost/Source (Base) |
+| -------- | -----------------------: | ---------------------: | -------------------: | ------------: | --------------: | ----------------------: | ------------------------: | --------------------: | ----------------------: | -----------------: |
+| `$599`   |                     `60` |                 `7.15` |               `3.36` |        `0.75` |          `1.34` |                `$16.96` |                  `$35.21` |              `$16.64` |                `$33.60` |            `$0.84` |
+| `$2,500` |                     `90` |                `10.73` |               `2.24` |        `0.50` |          `0.90` |                `$13.57` |                  `$24.43` |              `$69.44` |                `$83.01` |            `$2.08` |
+| `$5,000` |                    `180` |                `21.46` |               `1.12` |        `0.25` |          `0.45` |                 `$8.14` |                  `$14.66` |             `$138.89` |               `$147.03` |            `$3.68` |
+| `$7,500` |                    `320` |                `38.18` |               `0.63` |        `0.14` |          `0.25` |                 `$5.43` |                   `$9.77` |             `$208.33` |               `$213.76` |            `$5.34` |
 
 These values assume no incremental fill-escalation term (equivalently, `p_escalate = 0`).
 
@@ -111,12 +111,12 @@ Illustrative assumptions for your described workflow:
 - Escalation probability after local budget: $p_{escalate}=0.35$
 - Mean fill-call cost: $c_{fill}=0.25$ USD/call
 
-| Budget | Web-Aware Cloud Cost/Month (Base) | Web-Aware Cloud Cost/Month (Stress) | Cloud Calls/Month (Base) | Cloud Calls/Month (Stress) |
-|---|---:|---:|---:|---:|
-| `$599` | `$18.01` | `$36.62` | `14.20` | `37.41` |
-| `$2,500` | `$14.69` | `$26.44` | `12.48` | `22.46` |
-| `$5,000` | `$9.37` | `$16.87` | `9.73` | `17.51` |
-| `$7,500` | `$6.72` | `$12.09` | `8.35` | `15.03` |
+| Budget   | Web-Aware Cloud Cost/Month (Base) | Web-Aware Cloud Cost/Month (Stress) | Cloud Calls/Month (Base) | Cloud Calls/Month (Stress) |
+| -------- | --------------------------------: | ----------------------------------: | -----------------------: | -------------------------: |
+| `$599`   |                          `$18.01` |                            `$36.62` |                  `14.20` |                    `37.41` |
+| `$2,500` |                          `$14.69` |                            `$26.44` |                  `12.48` |                    `22.46` |
+| `$5,000` |                           `$9.37` |                            `$16.87` |                   `9.73` |                    `17.51` |
+| `$7,500` |                           `$6.72` |                            `$12.09` |                   `8.35` |                    `15.03` |
 
 ## 6) Interpretation Against Industry Thresholds
 
@@ -160,17 +160,17 @@ After 2-4 weeks of production telemetry, update:
 Populate this table from the per-architecture snapshot entries to compare real pilot performance.
 
 | Snapshot ID | Git Commit | Date (UTC) | Architecture | Model Profile | Context | Concurrency | Sources/Day Observed | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | `h_db_obs` | `local_time_budget_sec` | `p_escalate_obs` | `c_fill_obs` (USD/call) | `cloud_fill_calls_obs` | `local_cli_calls_obs` | Cloud Spend Window (USD) | `q_accept_obs` | Notes |
-|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| snap-002 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| ----------- | ---------- | ---------- | ------------ | ------------- | ------: | ----------: | -------------------: | -------------------: | --------: | -----------: | ---------------: | ---------: | ----------------------: | ---------------: | ----------------------: | ---------------------: | --------------------: | -----------------------: | -------------: | ----- |
+| snap-001    |            |            |              |               |         |             |                      |                      |           |              |                  |            |                         |                  |                         |                        |                       |                          |                |       |
+| snap-002    |            |            |              |               |         |             |                      |                      |           |              |                  |            |                         |                  |                         |                        |                       |                          |                |       |
 
 Use this roll-up to replace model values with observed medians in Sections 3-6 after the pilot window.
 
 ## 11) Sources
 
-- FinOps Unit Economics: https://www.finops.org/framework/capabilities/unit-economics/
-- AWS Well-Architected Cost Optimization: https://docs.aws.amazon.com/wellarchitected/latest/framework/a-cost-optimization.html
-- MLPerf Inference (datacenter scenarios): https://mlcommons.org/benchmarks/inference-datacenter/
-- NVIDIA Triton optimization: https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton-inference-server-2610/user-guide/docs/optimization.html
-- TensorRT-LLM memory reference: https://nvidia.github.io/TensorRT-LLM/reference/memory.html
-- Google SRE SLO chapter: https://sre.google/sre-book/service-level-objectives/
+- FinOps Unit Economics: [https://www.finops.org/framework/capabilities/unit-economics/](https://www.finops.org/framework/capabilities/unit-economics/)
+- AWS Well-Architected Cost Optimization: [https://docs.aws.amazon.com/wellarchitected/latest/framework/a-cost-optimization.html](https://docs.aws.amazon.com/wellarchitected/latest/framework/a-cost-optimization.html)
+- MLPerf Inference (datacenter scenarios): [https://mlcommons.org/benchmarks/inference-datacenter/](https://mlcommons.org/benchmarks/inference-datacenter/)
+- NVIDIA Triton optimization: [https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton-inference-server-2610/user-guide/docs/optimization.html](https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton-inference-server-2610/user-guide/docs/optimization.html)
+- TensorRT-LLM memory reference: [https://nvidia.github.io/TensorRT-LLM/reference/memory.html](https://nvidia.github.io/TensorRT-LLM/reference/memory.html)
+- Google SRE SLO chapter: [https://sre.google/sre-book/service-level-objectives/](https://sre.google/sre-book/service-level-objectives/)

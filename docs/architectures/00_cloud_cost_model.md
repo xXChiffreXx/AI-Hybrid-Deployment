@@ -327,33 +327,33 @@ Use this schema for every test deployment window so model values can be replaced
 
 ### 13.1 Required Snapshot Fields
 
-| Field | Unit | Purpose |
-|---|---|---|
-| `snapshot_id` | text | Unique deployment run identifier. |
-| `architecture_option` | text | One of: `$599`, `$2,500`, `$5,000`, `$7,500`. |
-| `git_commit` | text | Code revision used for this snapshot run. |
-| `window_start_utc` | datetime | Snapshot start time. |
-| `window_end_utc` | datetime | Snapshot end time. |
-| `sources_completed` | count | Throughput in completed knowledge-source jobs. |
-| `tokens_in` | tokens | Actual input token volume. |
-| `tokens_out` | tokens | Actual output token volume. |
-| `lambda_peak_obs` | tokens/sec | Observed peak arrival rate during the window. |
-| `mu_compute_obs` | tokens/sec | Compute-limited service rate from load test. |
-| `mu_memory_obs` | tokens/sec | Memory-bandwidth-limited service rate from load test. |
-| `f_fit_obs` | 0..1 | Memory pressure multiplier from real run behavior. |
-| `memory_peak_gb` | GB | Peak memory observed during run. |
-| `cache_hit_rate_obs` | 0..1 | Observed prompt/cache hit rate. |
-| `db_hit_rate_obs` | 0..1 | Observed DB complete-hit rate. |
-| `local_time_budget_sec` | sec | Configured local resolve time budget before escalation. |
-| `p_escalate_obs` | 0..1 | Observed escalation probability after local budget. |
-| `c_fill_obs` | USD/call | Observed average cost for one fill-call escalation. |
-| `cloud_fill_calls_obs` | count | Number of cloud fill calls in snapshot window. |
-| `avg_missing_fields_obs` | count | Average missing fields when escalation occurs. |
-| `local_cli_calls_obs` | count | Local CLI call count used for resolution attempts. |
-| `r_h_obs` | 0..1 | Observed hard-route fraction to high-reasoning cloud route. |
-| `cloud_spend_usd` | USD | Cloud spend for snapshot window. |
-| `q_accept_obs` | 0..1 | Accepted-item rate from rubric review. |
-| `accepted_items` | count | Accepted knowledge items in snapshot window. |
+| Field                    | Unit       | Purpose                                                     |
+| ------------------------ | ---------- | ----------------------------------------------------------- |
+| `snapshot_id`            | text       | Unique deployment run identifier.                           |
+| `architecture_option`    | text       | One of: `$599`, `$2,500`, `$5,000`, `$7,500`.               |
+| `git_commit`             | text       | Code revision used for this snapshot run.                   |
+| `window_start_utc`       | datetime   | Snapshot start time.                                        |
+| `window_end_utc`         | datetime   | Snapshot end time.                                          |
+| `sources_completed`      | count      | Throughput in completed knowledge-source jobs.              |
+| `tokens_in`              | tokens     | Actual input token volume.                                  |
+| `tokens_out`             | tokens     | Actual output token volume.                                 |
+| `lambda_peak_obs`        | tokens/sec | Observed peak arrival rate during the window.               |
+| `mu_compute_obs`         | tokens/sec | Compute-limited service rate from load test.                |
+| `mu_memory_obs`          | tokens/sec | Memory-bandwidth-limited service rate from load test.       |
+| `f_fit_obs`              | 0..1       | Memory pressure multiplier from real run behavior.          |
+| `memory_peak_gb`         | GB         | Peak memory observed during run.                            |
+| `cache_hit_rate_obs`     | 0..1       | Observed prompt/cache hit rate.                             |
+| `db_hit_rate_obs`        | 0..1       | Observed DB complete-hit rate.                              |
+| `local_time_budget_sec`  | sec        | Configured local resolve time budget before escalation.     |
+| `p_escalate_obs`         | 0..1       | Observed escalation probability after local budget.         |
+| `c_fill_obs`             | USD/call   | Observed average cost for one fill-call escalation.         |
+| `cloud_fill_calls_obs`   | count      | Number of cloud fill calls in snapshot window.              |
+| `avg_missing_fields_obs` | count      | Average missing fields when escalation occurs.              |
+| `local_cli_calls_obs`    | count      | Local CLI call count used for resolution attempts.          |
+| `r_h_obs`                | 0..1       | Observed hard-route fraction to high-reasoning cloud route. |
+| `cloud_spend_usd`        | USD        | Cloud spend for snapshot window.                            |
+| `q_accept_obs`           | 0..1       | Accepted-item rate from rubric review.                      |
+| `accepted_items`         | count      | Accepted knowledge items in snapshot window.                |
 
 ### 13.2 Derived Snapshot Metrics
 
@@ -396,15 +396,15 @@ C_{accept,obs} = \frac{TC_{month,obs}}{accepted\_items}
 ### 13.3 Snapshot Row Template
 
 | snapshot_id | architecture_option | git_commit | window_start_utc | window_end_utc | sources_completed | tokens_in | tokens_out | lambda_peak_obs | mu_compute_obs | mu_memory_obs | f_fit_obs | mu_eff_obs | rho_obs | r_over_obs | memory_peak_gb | cache_hit_rate_obs | db_hit_rate_obs | local_time_budget_sec | p_escalate_obs | c_fill_obs | cloud_fill_calls_obs | avg_missing_fields_obs | local_cli_calls_obs | r_h_obs | cloud_spend_usd | q_accept_obs | accepted_items | notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| ----------- | ------------------- | ---------- | ---------------- | -------------- | ----------------- | --------- | ---------- | --------------- | -------------- | ------------- | --------- | ---------- | ------- | ---------- | -------------- | ------------------ | --------------- | --------------------- | -------------- | ---------- | -------------------- | ---------------------- | ------------------- | ------- | --------------- | ------------ | -------------- | ----- |
+| snap-001    |                     |            |                  |                |                   |           |            |                 |                |               |           |            |         |            |                |                    |                 |                       |                |            |                      |                        |                     |         |                 |              |                |       |
 
 ## 14) Reference Baselines Used
 
-- FinOps Unit Economics: https://www.finops.org/framework/capabilities/unit-economics/
-- AWS Well-Architected Cost Optimization: https://docs.aws.amazon.com/wellarchitected/latest/framework/a-cost-optimization.html
-- MLPerf Inference scenarios and metrics: https://mlcommons.org/benchmarks/inference-datacenter/
-- NVIDIA Triton optimization (throughput/latency/concurrency): https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton-inference-server-2610/user-guide/docs/optimization.html
-- TensorRT-LLM memory decomposition and KV behavior: https://nvidia.github.io/TensorRT-LLM/reference/memory.html
-- Google SRE SLO guidance (percentiles/error budgets): https://sre.google/sre-book/service-level-objectives/
-- Roofline model background: https://cacm.acm.org/research/roofline-an-insightful-visual-performance-model-for-multicore-architectures/
+- FinOps Unit Economics: [https://www.finops.org/framework/capabilities/unit-economics/](https://www.finops.org/framework/capabilities/unit-economics/)
+- AWS Well-Architected Cost Optimization: [https://docs.aws.amazon.com/wellarchitected/latest/framework/a-cost-optimization.html](https://docs.aws.amazon.com/wellarchitected/latest/framework/a-cost-optimization.html)
+- MLPerf Inference scenarios and metrics: [https://mlcommons.org/benchmarks/inference-datacenter/](https://mlcommons.org/benchmarks/inference-datacenter/)
+- NVIDIA Triton optimization (throughput/latency/concurrency): [https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton-inference-server-2610/user-guide/docs/optimization.html](https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton-inference-server-2610/user-guide/docs/optimization.html)
+- TensorRT-LLM memory decomposition and KV behavior: [https://nvidia.github.io/TensorRT-LLM/reference/memory.html](https://nvidia.github.io/TensorRT-LLM/reference/memory.html)
+- Google SRE SLO guidance (percentiles/error budgets): [https://sre.google/sre-book/service-level-objectives/](https://sre.google/sre-book/service-level-objectives/)
+- Roofline model background: [https://cacm.acm.org/research/roofline-an-insightful-visual-performance-model-for-multicore-architectures/](https://cacm.acm.org/research/roofline-an-insightful-visual-performance-model-for-multicore-architectures/)
