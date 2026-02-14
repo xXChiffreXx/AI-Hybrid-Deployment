@@ -22,6 +22,14 @@ Budget-tier comparisons and shared cost equations are in `docs/budgets`:
 - Shared model: [`docs/budgets/00_cloud_cost_model.md`](docs/budgets/00_cloud_cost_model.md)
 - Cost/performance analysis: [`docs/budgets/10_cost_performance_writeup.md`](docs/budgets/10_cost_performance_writeup.md)
 
+## Confidence and Uncertainty
+
+Confidence-interval methodology for output acceptance/hallucination quality is in `docs/confidence`:
+
+- [`docs/confidence/README.md`](docs/confidence/README.md)
+- [`docs/confidence/00_output_confidence_interval_method.md`](docs/confidence/00_output_confidence_interval_method.md)
+- [`docs/confidence/01_qwen_budget_hallucination_standard.md`](docs/confidence/01_qwen_budget_hallucination_standard.md)
+
 ## Quick Comparison (Industry-Style, Architecture Baseline)
 
 | Budget   | Effective Throughput (&mu;<sub>eff</sub>) | Usable Memory Envelope (&eta; M<sub>avail</sub>) | Stability (&rho;<sub>base</sub> / &rho;<sub>stress</sub>) | Est. Cloud Cost / Month (Base) | Est. Cloud Cost / Month (Stress) |

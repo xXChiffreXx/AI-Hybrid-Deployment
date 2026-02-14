@@ -27,6 +27,8 @@ Primary entry document:
 3. Read [`main/docs/architecture/00_system_architecture.md`](main/docs/architecture/00_system_architecture.md) for system boundaries and trust model.
 4. Read [`main/docs/architecture/01_runtime_routing_and_invocation.md`](main/docs/architecture/01_runtime_routing_and_invocation.md) for end-to-end runtime flow.
 5. Read [`main/KNOWLEDGE_BASE_ITEMS.md`](main/KNOWLEDGE_BASE_ITEMS.md) for output artifact schema and quality gates.
+6. Read [`main/docs/confidence/00_output_confidence_interval_method.md`](main/docs/confidence/00_output_confidence_interval_method.md) for formal confidence-interval quality gating.
+7. Read [`main/docs/confidence/01_qwen_budget_hallucination_standard.md`](main/docs/confidence/01_qwen_budget_hallucination_standard.md) for budget-tier Qwen hallucination standards.
 
 ## Plain-language MVP workflow (current design intent)
 
