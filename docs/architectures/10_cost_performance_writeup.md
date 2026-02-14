@@ -120,8 +120,8 @@ Illustrative assumptions for your described workflow:
 
 ## 6) Interpretation Against Industry Thresholds
 
-- Stability threshold (`\rho < 1`): `$599` fails stress; `$2,500`, `$5,000`, and `$7,500` pass baseline and stress.
-- Tail-latency headroom target (`\rho \le 0.70`): `$2,500`, `$5,000`, and `$7,500` pass baseline; `$5,000` and `$7,500` pass stress.
+- Stability threshold ($\rho < 1$): `$599` fails stress; `$2,500`, `$5,000`, and `$7,500` pass baseline and stress.
+- Tail-latency headroom target ($\rho \le 0.70$): `$2,500`, `$5,000`, and `$7,500` pass baseline; `$5,000` and `$7,500` pass stress.
 - Memory-fit risk: `$599` is the only class with materially narrow memory headroom and therefore the highest operational sensitivity.
 - In web-aware mode, cloud costs rise modestly, but cloud call volume becomes a first-class operational metric.
 

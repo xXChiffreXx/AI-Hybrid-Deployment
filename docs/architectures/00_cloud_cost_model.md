@@ -190,7 +190,7 @@ Policy variables:
 Escalation probability definition:
 
 ```math
-p_{escalate} = P\left(t_{local}>\tau_{local}\ \text{or}\ q_{local}<q_{min}\mid \text{DB miss, not overflow}\right)
+p_{escalate} = \Pr\big(t_{local}>\tau_{local}\ \text{or}\ q_{local}<q_{min}\mid \text{DB miss, not overflow}\big)
 ```
 
 Expected cloud fill calls/month:
