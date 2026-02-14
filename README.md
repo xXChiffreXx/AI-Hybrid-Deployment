@@ -24,7 +24,7 @@ Budget-tier comparisons and shared cost equations are in `docs/budgets`:
 
 ## Quick Comparison (Industry-Style, Architecture Baseline)
 
-| Budget   | Effective Throughput (`mu_eff`) | Usable Memory Envelope (`eta * M_avail`) | Stability (`rho_base / rho_stress`) | Est. Cloud Cost / Month (Base) | Est. Cloud Cost / Month (Stress) |
+| Budget   | Effective Throughput (&mu;<sub>eff</sub>) | Usable Memory Envelope (&eta; M<sub>avail</sub>) | Stability (&rho;<sub>base</sub> / &rho;<sub>stress</sub>) | Est. Cloud Cost / Month (Base) | Est. Cloud Cost / Month (Stress) |
 | -------- | ---------------------------------: | ----------------------------------------: | ----------------------------------------: | -----------------------------: | -------------------------------: |
 | `$599`   |                        `~60 tok/s` |                            `13.6-20.4 GB` |                             `0.75 / 1.34` |                       `$16.96` |                         `$35.21` |
 | `$2,500` |                        `~90 tok/s` |                            `54.4-81.6 GB` |                             `0.50 / 0.90` |                       `$13.57` |                         `$24.43` |
@@ -52,7 +52,7 @@ Notes:
 
 - Costs are model-driven estimates from workload assumptions in [`docs/budgets/00_cloud_cost_model.md`](docs/budgets/00_cloud_cost_model.md).
 - Current modeled workload baseline is `40` sources/month (stress scenario `72`/month).
-- Throughput is memory-constrained effective throughput (`mu_eff`), not theoretical peak.
+- Throughput is memory-constrained effective throughput (&mu;<sub>eff</sub>), not theoretical peak.
 - Costs scale approximately linearly with token volume.
 - Web-aware enrichment policy (DB-first, local time budget, single cloud fill escalation) is modeled in `docs/budgets/00_cloud_cost_model.md`.
 - Snapshot data-entry templates are included in each budget doc and in the shared schema section of [`docs/budgets/00_cloud_cost_model.md`](docs/budgets/00_cloud_cost_model.md).
