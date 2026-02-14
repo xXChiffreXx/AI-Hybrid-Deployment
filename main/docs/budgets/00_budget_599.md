@@ -6,8 +6,7 @@ Create the lowest-cost institutional entry point for local knowledge-base genera
 
 ## Budget Assumption
 
-This option is modeled as a `$599` budget class as requested.
-If the 10GbE configuration raises actual procurement price above `$599`, keep this document as the lower-bound comparison profile.
+This option is modeled as a `$599` budget class.
 
 ## Target Infrastructure Profile
 
