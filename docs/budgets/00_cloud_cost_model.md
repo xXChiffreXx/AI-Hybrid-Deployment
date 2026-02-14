@@ -233,6 +233,14 @@ where $k_{local}$ is bounded by local retry/step caps.
 
 - Baseline $S=40$: $\lambda_{peak}=44.75$ tokens/sec
 - Stress $S=72$: $\lambda_{peak}=80.56$ tokens/sec
+- Conservative planning priors for escalation probability (use until telemetry is available):
+
+| Architecture | $p_{escalate}$ prior |
+| ------------ | -------------------: |
+| `$599`       |               `0.60` |
+| `$2,500`     |               `0.45` |
+| `$5,000`     |               `0.35` |
+| `$7,500`     |               `0.30` |
 
 ## 8) Uncertainty Model (Optional)
 

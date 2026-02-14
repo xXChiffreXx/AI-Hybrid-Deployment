@@ -83,6 +83,15 @@ W_q = \frac{\rho}{\mu_{eff}-\lambda}, \quad R = \frac{1}{\mu_{eff}} + W_q
 - $\lambda_{peak,base}=44.75$, $\lambda_{peak,stress}=80.56$ tokens/sec
 - Memory safety factor: $\eta=0.85$
 
+Default Ollama model mapping used by the budget tiers:
+
+| Budget   | Ollama Model |
+| -------- | ------------ |
+| `$599`   | `qwen2.5:7b` |
+| `$2,500` | `qwen2.5:14b` |
+| `$5,000` | `qwen2.5:32b` |
+| `$7,500` | `qwen2.5:72b` |
+
 ## 4) Memory Envelope and Effective Throughput
 
 | Budget   | Installed Memory Envelope | Usable Envelope ($\eta M_{avail}$) | $f_{fit}$ | $\mu_{eff}$ (tokens/sec) |
@@ -103,20 +112,27 @@ W_q = \frac{\rho}{\mu_{eff}-\lambda}, \quad R = \frac{1}{\mu_{eff}} + W_q
 
 These values assume no incremental fill-escalation term (equivalently, `p_escalate = 0`).
 
-## 5A) Web-Aware Policy Overlay (Illustrative)
+## 5A) Web-Aware Policy Overlay (Conservative)
 
-Illustrative assumptions for your described workflow:
+Conservative planning assumptions for this workflow:
 
 - DB complete-hit rate: $h_{db}=0.60$
-- Escalation probability after local budget: $p_{escalate}=0.35$
 - Mean fill-call cost: $c_{fill}=0.25$ USD/call
+- Escalation probability after local budget by machine tier:
+
+| Budget   | $p_{escalate}$ |
+| -------- | -------------: |
+| `$599`   |         `0.60` |
+| `$2,500` |         `0.45` |
+| `$5,000` |         `0.35` |
+| `$7,500` |         `0.30` |
 
 | Budget   | Web-Aware Cloud Cost/Month (Base) | Web-Aware Cloud Cost/Month (Stress) | Cloud Calls/Month (Base) | Cloud Calls/Month (Stress) |
 | -------- | --------------------------------: | ----------------------------------: | -----------------------: | -------------------------: |
-| `$599`   |                          `$18.01` |                            `$36.62` |                  `14.20` |                    `37.41` |
-| `$2,500` |                          `$14.69` |                            `$26.44` |                  `12.48` |                    `22.46` |
+| `$599`   |                          `$18.76` |                            `$37.62` |                  `17.20` |                    `41.43` |
+| `$2,500` |                          `$15.01` |                            `$27.02` |                  `13.76` |                    `24.77` |
 | `$5,000` |                           `$9.37` |                            `$16.87` |                   `9.73` |                    `17.51` |
-| `$7,500` |                           `$6.72` |                            `$12.09` |                   `8.35` |                    `15.03` |
+| `$7,500` |                           `$6.53` |                            `$11.76` |                   `7.62` |                    `13.71` |
 
 ## 6) Interpretation Against Industry Thresholds
 

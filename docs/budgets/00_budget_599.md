@@ -34,6 +34,11 @@ Service layer is OS-agnostic because inference is standardized through `llama-se
 - Local-first for routine tasks when available
 - Cloud for hard tasks and overflow during demand spikes
 
+## Default Ollama Model
+
+- Primary local model tag: `qwen2.5:7b`
+- Pull command: `ollama pull qwen2.5:7b`
+
 ## Memory-Constrained Operating Point
 
 Assumptions for Track A generation profile:
@@ -41,7 +46,7 @@ Assumptions for Track A generation profile:
 - Installed memory envelope: $M_{avail} = 16 \text{ to } 24$ GB
 - Safety factor: $\eta = 0.85$
 - Usable memory envelope: $\eta M_{avail} = 13.6 \text{ to } 20.4$ GB
-- Planned runtime working set (small quantized model, strict context/concurrency caps): $M_{req} \approx 13 \text{ to } 18$ GB
+- Planned runtime working set (`qwen2.5:7b`, quantized, strict context/concurrency caps): $M_{req} \approx 13 \text{ to } 18$ GB
 
 Throughput decomposition:
 
@@ -105,7 +110,34 @@ Stress (`S=72`):
 C_{stress}=72\left(0.25\cdot1.69625+0.75\cdot0.2552\cdot0.33925\right)=\$35.21/month
 ```
 
+Conservative web-aware planning assumptions for this tier:
+
+- $h_{db}=0.60$
+- $p_{escalate}=0.60$
+- $c_{fill}=0.25$ USD/call
+
+Web-aware cloud cost:
+
+```math
+C_{base}^{web}=40\left(0.25\cdot1.69625+0.75\cdot(1-0.60)\cdot0.60\cdot0.25\right)=\$18.76/month
+```
+
+```math
+C_{stress}^{web}=72\left(0.25\cdot1.69625+0.75\cdot\left(0.2552\cdot0.33925+0.7448\cdot(1-0.60)\cdot0.60\cdot0.25\right)\right)=\$37.62/month
+```
+
+Expected cloud calls/month under web-aware policy:
+
+```math
+N_{cloud\_calls,base}=40\left(0.25+0.75\cdot(1-0.60)\cdot0.60\right)=17.20
+```
+
+```math
+N_{cloud\_calls,stress}=72\left(0.25+0.75\cdot\left(0.2552+0.7448\cdot(1-0.60)\cdot0.60\right)\right)=41.43
+```
+
 Approximate annual cloud range from this model: `$204 - $422`.
+Conservative web-aware annual cloud range: `$225 - $451`.
 
 ## Test Deployment Snapshot Entries
 
