@@ -2,6 +2,12 @@
 
 This repository defines software architecture and budget-model documentation for the Polypharmacy research program.
 
+## Start Here (First-Time Reviewer)
+
+If you are reviewing this after working with a prior workflow version, begin with:
+
+- [`docs/HANDOFF_FOR_PROFESSOR.md`](docs/HANDOFF_FOR_PROFESSOR.md)
+
 ## Software Architecture
 
 Implementation-oriented architecture docs are in `docs/architecture`:
