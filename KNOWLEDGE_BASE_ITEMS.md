@@ -106,7 +106,7 @@ Minimum table groups:
 - `runs`: evaluation run metadata (`run_id`, dataset snapshot, code ref)
 - `metrics`: benchmark/subgroup/sensitivity metrics
 
-Markdown notes, if used, should be generated projections from this store, not hand-maintained source data.
+Markdown notes, if used, should be generated read-only views from this store, not hand-maintained source data.
 
 ## Minimum Intended Production Set (Per Research Cycle)
 
@@ -130,11 +130,9 @@ Track B minimum:
 
 This ensures the knowledge base is led by Track A research analysis outputs, with Track B serving reliability and cost governance.
 
-## Vault Logic Mapping (Without Markdown as Source of Truth)
+## View-Layer Mapping (Tool-Agnostic)
 
-Canonical vault root:
-
-- `/Users/chiffre/Library/Mobile Documents/iCloud~md~obsidian/Documents/Academics/Polypharmacy-Research-Project`
+Any team can use any read tool. Canonical storage remains the source-of-truth.
 
 ### Track-level mapping fields
 
@@ -142,8 +140,8 @@ Every item row in the canonical store must carry:
 
 - `track` (`A` or `B`)
 - `item_type` (`TA-*` or `TB-*`)
-- `vault_track` (`Track-A-Polypharmacy` or `Track-B-LLM-Systems`)
-- `vault_logic_group` (logical bucket, e.g. `cohort_logic`, `baseline_benchmarks`)
+- `view_track` (consumer grouping label, e.g. `track_a` or `track_b`)
+- `view_logic_group` (logical bucket, e.g. `cohort_logic`, `baseline_benchmarks`)
 
 ### Logical group map
 
@@ -172,10 +170,10 @@ Track B groups:
 - `TB-04`: `evaluation_result_notes`
 - `TB-05`: `routing_decision_records`
 
-### Obsidian projection strategy
+### Derived view strategy
 
-If you want notes in the vault, generate them from the store:
+If you want notes, dashboards, or exports, generate them from the store:
 
 - one index note per logical group
 - optional per-item summary note with canonical `item_id` and deep link to store record
-- no manual editing of projected notes
+- no manual editing of generated views

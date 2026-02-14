@@ -21,6 +21,12 @@ Derived from budget docs:
 5. if local route fails quality or exceeds budget, issue one cloud fill escalation call.
 6. upsert final record with provenance.
 
+## Cloud Reentry Rule
+
+- cloud providers never write directly to canonical storage.
+- every cloud response must pass through `gateway` normalization and then through `kb-writer`.
+- mandatory persistence path: `cloud -> gateway -> kb-writer -> SQLite/Parquet`.
+
 ## End-to-End Sequence
 
 ```mermaid
@@ -63,6 +69,7 @@ sequenceDiagram
   participant R as redis queue state
   participant L as llama-server
   participant C as cloud llm
+  participant W as kb-writer
 
   U->>G: request
   G->>R: read pressure and policy counters
@@ -81,6 +88,8 @@ sequenceDiagram
     end
   end
 
+  G->>W: persist response and provenance
+  W-->>G: write success
   G-->>U: normalized response
 ```
 
@@ -94,6 +103,7 @@ These contracts are proposed interfaces to implement; they do not exist yet in t
 | Gateway to local inference | `POST <llama-server>/v1/chat/completions` | request passthrough with policy-controlled model/context limits. |
 | Gateway to cloud route | provider adaptor call | normalization layer should make cloud response shape match local response shape. |
 | Gateway to kb-writer | internal RPC or message queue | write path should include `item_id`, provenance, verification fields, and route metadata. |
+| Cloud direct to store | not allowed | cloud output must re-enter through gateway and `kb-writer`. |
 
 ## Planned Invocation Artifacts
 

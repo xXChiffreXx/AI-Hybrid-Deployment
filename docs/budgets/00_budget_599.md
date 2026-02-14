@@ -27,7 +27,6 @@ Service layer is OS-agnostic because inference is standardized through `llama-se
 - `redis` for cache and queue state
 - `qdrant` for sector retrieval memory
 - `kb-writer` to canonical `SQLite + Parquet`
-- `obsidian-projector` for generated vault views
 
 ## Deployment Pattern
 

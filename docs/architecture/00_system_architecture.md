@@ -25,6 +25,7 @@ This architecture is derived from these references:
 - Local-first generation for normal load.
 - Cloud fallback for hard tasks, overflow, and unresolved local runs.
 - Canonical store in `SQLite + Parquet`, not markdown.
+- Tool-agnostic read-only views over canonical data.
 - Same software design across all budget tiers; only capacity and performance envelopes change.
 
 ## System Context
@@ -40,14 +41,13 @@ flowchart LR
     G --> K[kb-writer]
     K --> S[SQLite]
     K --> P[Parquet]
-    O[obsidian-projector] --> S
-    O --> P
-    O --> V[Obsidian Projection]
     B[Backup Scheduler] --> S
     B --> P
   end
 
   G --> C[Cloud LLM Route]
+  S --> V[Consumer Tools (Read-Only)]
+  P --> V
 ```
 
 ## Logical Components
@@ -59,7 +59,7 @@ flowchart LR
 | `redis` | Cache and queue coordination | request hashes, queue counters, state | cache hits, queue/pressure telemetry |
 | `qdrant` | Retrieval memory by sector | query embeddings/filters | ranked context chunks |
 | `kb-writer` | Canonical knowledge item writer | validated item payload plus provenance | normalized records in SQLite and Parquet |
-| `obsidian-projector` | Read-only projection layer | canonical records | generated markdown/index views |
+| `consumer tools` | Optional read-only access layer | canonical records | tool-specific views, dashboards, or exports |
 | `backup scheduler` | Snapshot/retention operations | SQLite and Parquet stores | recoverable backups |
 
 ## Trust Boundaries
@@ -85,8 +85,9 @@ flowchart TB
 Boundary notes:
 
 - `gateway` is the only component that can invoke cloud APIs.
+- cloud responses must re-enter through `gateway -> kb-writer` before any canonical store write.
 - canonical stores are local institutional assets and should not be directly written by client tools.
-- projected markdown in Obsidian is derived output, not source-of-truth.
+- any downstream view tool is a derived consumer, not source-of-truth.
 
 ## Cross-Tier Invariance
 

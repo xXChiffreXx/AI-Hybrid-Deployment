@@ -14,7 +14,6 @@ flowchart TB
     W[kb-writer]
     S[SQLite]
     P[Parquet]
-    O[obsidian-projector]
     B[backup job]
 
     G --> L
@@ -23,12 +22,12 @@ flowchart TB
     G --> W
     W --> S
     W --> P
-    O --> S
-    O --> P
     B --> S
     B --> P
   end
 
+  V[Consumer Tools (Read-Only)] --> S
+  V --> P
   U[Research Clients over SSH or API] --> G
   G --> C[Cloud LLM]
 ```
@@ -41,6 +40,7 @@ Control decisions should be centralized in `gateway`:
 - queue admission and concurrency caps
 - local timeout budget and escalation triggers
 - cloud budget ceilings and fallback limits
+- cloud reentry enforcement (`cloud -> gateway -> kb-writer -> canonical store`)
 
 ## Operational Metrics
 
@@ -62,14 +62,14 @@ These map directly to the snapshot schemas in `docs/budgets/00_cloud_cost_model.
 | low memory headroom | strict context/concurrency limits and `f_fit` monitoring |
 | repeated unresolved items | single cloud fill escalation with missing-field targeting |
 | canonical store write failures | idempotent writer operations and retry with dead-letter capture |
-| stale derived markdown | scheduled projector runs from canonical store snapshots |
+| stale derived views | regenerate read-only views from canonical store snapshots |
 
 ## Backup and Recovery
 
 - snapshot `SQLite` and `Parquet` on schedule.
 - keep retention windows aligned with research cycle checkpoints.
 - periodically test restore into a clean node.
-- treat Obsidian vault output as regenerable projection.
+- treat any downstream read-only view artifacts as regenerable.
 
 ## Implementation Gap Register
 
