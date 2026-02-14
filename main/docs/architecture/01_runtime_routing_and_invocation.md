@@ -82,8 +82,6 @@ Batch processing does not change these per-resource completion requirements.
 
 ## Invocation Contracts
 
-These are proposed contracts for MVP implementation; they are not implemented in this repository yet.
-
 | Interface | Proposed Contract | Notes |
 | --- | --- | --- |
 | Client to resolver | `POST /mvp/ingest-source` | input should include source locator plus required field schema. |
@@ -102,5 +100,3 @@ Expected MVP implementation artifacts:
 - unresolved-entry batch planner and grouping policy
 - writer integration module
 - schema-completion checker and `tau_local` policy config
-
-Current status: none of these artifacts are present yet.
