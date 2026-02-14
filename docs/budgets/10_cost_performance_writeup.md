@@ -110,7 +110,8 @@ Default Ollama model mapping used by the budget tiers:
 | `$5,000` |                    `180` |                `21.46` |               `1.12` |        `0.25` |          `0.45` |                 `$8.14` |                  `$14.66` |             `$138.89` |               `$147.03` |            `$3.68` |
 | `$7,500` |                    `320` |                `38.18` |               `0.63` |        `0.14` |          `0.25` |                 `$5.43` |                   `$9.77` |             `$208.33` |               `$213.76` |            `$5.34` |
 
-These values assume no incremental fill-escalation term (equivalently, `p_escalate = 0`).
+These values assume no incremental fill-escalation term (equivalently, `p_escalate = 0`) and are intended as an architecture-only baseline.
+For operational planning with tier-specific conservative escalation assumptions, use Section 5A.
 
 ## 5A) Web-Aware Policy Overlay (Conservative)
 
