@@ -11,7 +11,6 @@ Define the MVP architecture for user-fed online drug resources:
 ## Status
 
 - Architecture status: MVP baseline design
-- Implementation status: not yet present in this repository
 
 ## Source Assumptions
 
@@ -30,7 +29,6 @@ For MVP, orchestration and local resolution are treated as one logical service:
 
 - `resolver-gateway` orchestrates DB checks, unresolved-entry batching, local fill attempts, cloud fallback, and completion checks.
 - `ollama-server` performs local extraction/fill inference calls.
-- the older conceptual split (`gateway` vs separate local route controller) is collapsed into this MVP orchestration path.
 
 ## Architecture Drivers
 
