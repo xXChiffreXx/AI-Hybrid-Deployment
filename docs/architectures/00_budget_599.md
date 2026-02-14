@@ -89,6 +89,9 @@ Monthly cloud cost:
 C_{month}=S\left(r_hc_h+(1-r_h)r_{over}c_e\right)
 ```
 
+For web-aware enrichment workflows, use the extended cost equation in `00_cloud_cost_model.md`:
+$C_{month}^{web}$ with $h_{db}$, $p_{escalate}$, and $c_{fill}$.
+
 with $c_e=0.33925$, $c_h=1.69625$.
 
 Baseline (`S=40`):
@@ -109,9 +112,9 @@ Approximate annual cloud range from this model: `$204 - $422`.
 
 Use one row per pilot snapshot window (recommended: 24h to 168h windows).
 
-| Snapshot ID | Git Commit | Start (UTC) | End (UTC) | Model Profile | Context Tokens | Concurrency | Sources Completed | Tokens In | Tokens Out | Peak Arrival `lambda_peak_obs` (tok/s) | `mu_compute_obs` (tok/s) | `mu_memory_obs` (tok/s) | `f_fit_obs` | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | Cloud Spend (USD) | `q_accept_obs` | Notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Snapshot ID | Git Commit | Start (UTC) | End (UTC) | Model Profile | Context Tokens | Concurrency | Sources Completed | Tokens In | Tokens Out | Peak Arrival `lambda_peak_obs` (tok/s) | `mu_compute_obs` (tok/s) | `mu_memory_obs` (tok/s) | `f_fit_obs` | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | `h_db_obs` | `local_time_budget_sec` | `p_escalate_obs` | `c_fill_obs` (USD/call) | `cloud_fill_calls_obs` | `avg_missing_fields_obs` | `local_cli_calls_obs` | Cloud Spend (USD) | `q_accept_obs` | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 Derived fields for this architecture:
 
@@ -124,7 +127,11 @@ Derived fields for this architecture:
 ```
 
 ```math
-C_{month,obs}=S_{obs}\left(0.25\cdot c_h + 0.75\cdot r_{over,obs}\cdot c_e\right)
+N_{cloud\_calls,obs}=S_{obs}\left(0.25+0.75\left(r_{over,obs}+(1-r_{over,obs})(1-h_{db,obs})p_{escalate,obs}\right)\right)
+```
+
+```math
+C_{month,obs}^{web}=S_{obs}\left(0.25\cdot c_h + 0.75\left(r_{over,obs}\cdot c_e + (1-r_{over,obs})(1-h_{db,obs})p_{escalate,obs}c_{fill,obs}\right)\right)
 ```
 
 Model versus observed quick check:

@@ -22,6 +22,18 @@ Cloud monthly cost:
 C_{month}=S\left(r_hc_h+(1-r_h)r_{over}c_e\right)
 ```
 
+Web-aware monthly cloud cost (DB-aware + local time budget + single fill escalation):
+
+```math
+C_{month}^{web}=S\left[r_hc_h+(1-r_h)\left(r_{over}c_e+(1-r_{over})(1-h_{db})p_{escalate}c_{fill}\right)\right]
+```
+
+Expected cloud calls/month under this policy:
+
+```math
+N_{cloud\_calls}=S\left[r_h+(1-r_h)\left(r_{over}+(1-r_{over})(1-h_{db})p_{escalate}\right)\right]
+```
+
 Memory-constrained effective throughput:
 
 ```math
@@ -44,6 +56,10 @@ CapEx amortization (power excluded by scope):
 
 ```math
 A_{month}=\frac{CapEx}{L}, \quad TC_{month}=A_{month}+C_{month}
+```
+
+```math
+TC_{month}^{web}=A_{month}+C_{month}^{web}
 ```
 
 Quality-adjusted unit economics:
@@ -76,7 +92,7 @@ W_q = \frac{\rho}{\mu_{eff}-\lambda}, \quad R = \frac{1}{\mu_{eff}} + W_q
 | `$5,000` | `128 GB` | `108.8 GB` | `1.00` | `180` |
 | `$7,500` | `192-256 GB` | `163.2-217.6 GB` | `1.00` | `320` |
 
-## 5) Comparative Results
+## 5) Comparative Results (One-Pass Baseline)
 
 | Budget | $\mu_{eff}$ (tokens/sec) | Local-only Sources/Day | $t_{source}$ (hours) | $\rho_{base}$ | $\rho_{stress}$ | Cloud Cost/Month (Base) | Cloud Cost/Month (Stress) | Amortized CapEx/Month | Total Cost/Month (Base) | Cost/Source (Base) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -85,11 +101,29 @@ W_q = \frac{\rho}{\mu_{eff}-\lambda}, \quad R = \frac{1}{\mu_{eff}} + W_q
 | `$5,000` | `180` | `21.46` | `1.12` | `0.25` | `0.45` | `$8.14` | `$14.66` | `$138.89` | `$147.03` | `$3.68` |
 | `$7,500` | `320` | `38.18` | `0.63` | `0.14` | `0.25` | `$5.43` | `$9.77` | `$208.33` | `$213.76` | `$5.34` |
 
+These values assume no incremental fill-escalation term (equivalently, `p_escalate = 0`).
+
+## 5A) Web-Aware Policy Overlay (Illustrative)
+
+Illustrative assumptions for your described workflow:
+
+- DB complete-hit rate: $h_{db}=0.60$
+- Escalation probability after local budget: $p_{escalate}=0.35$
+- Mean fill-call cost: $c_{fill}=0.25$ USD/call
+
+| Budget | Web-Aware Cloud Cost/Month (Base) | Web-Aware Cloud Cost/Month (Stress) | Cloud Calls/Month (Base) | Cloud Calls/Month (Stress) |
+|---|---:|---:|---:|---:|
+| `$599` | `$18.01` | `$36.62` | `14.20` | `37.41` |
+| `$2,500` | `$14.69` | `$26.44` | `12.48` | `22.46` |
+| `$5,000` | `$9.37` | `$16.87` | `9.73` | `17.51` |
+| `$7,500` | `$6.72` | `$12.09` | `8.35` | `15.03` |
+
 ## 6) Interpretation Against Industry Thresholds
 
 - Stability threshold (`\rho < 1`): `$599` fails stress; `$2,500`, `$5,000`, and `$7,500` pass baseline and stress.
 - Tail-latency headroom target (`\rho \le 0.70`): `$2,500`, `$5,000`, and `$7,500` pass baseline; `$5,000` and `$7,500` pass stress.
 - Memory-fit risk: `$599` is the only class with materially narrow memory headroom and therefore the highest operational sensitivity.
+- In web-aware mode, cloud costs rise modestly, but cloud call volume becomes a first-class operational metric.
 
 ## 7) Additional Analysis Mode Still Worth Adding
 
@@ -116,16 +150,19 @@ After 2-4 weeks of production telemetry, update:
 3. $r_h$ from actual hard-route fraction.
 4. $r_{over}$ from queue spill metrics.
 5. $T_{in}, T_{out}$ from observed medians.
-6. Recompute costs, utilization, and queue-risk indicators.
+6. $h_{db}$ from DB complete-hit measurements.
+7. $p_{escalate}$ at configured local time budget.
+8. $c_{fill}$ from observed fill-call spend per call.
+9. Recompute costs, cloud-call volume, utilization, and queue-risk indicators.
 
 ## 10) Snapshot Roll-Up Table (Cross-Architecture)
 
 Populate this table from the per-architecture snapshot entries to compare real pilot performance.
 
-| Snapshot ID | Git Commit | Date (UTC) | Architecture | Model Profile | Context | Concurrency | Sources/Day Observed | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | Cloud Spend Window (USD) | `q_accept_obs` | Notes |
-|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| snap-002 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Snapshot ID | Git Commit | Date (UTC) | Architecture | Model Profile | Context | Concurrency | Sources/Day Observed | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | `h_db_obs` | `local_time_budget_sec` | `p_escalate_obs` | `c_fill_obs` (USD/call) | `cloud_fill_calls_obs` | `local_cli_calls_obs` | Cloud Spend Window (USD) | `q_accept_obs` | Notes |
+|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| snap-002 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 Use this roll-up to replace model values with observed medians in Sections 3-6 after the pilot window.
 

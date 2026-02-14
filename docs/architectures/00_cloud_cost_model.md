@@ -167,6 +167,68 @@ Interpretation:
 - hard tasks always use the high-reasoning cloud route
 - overflow of remaining tasks uses the economy route
 
+## 6A) Web-Aware Enrichment + Single Escalation Policy
+
+This project also uses a DB-aware enrichment workflow:
+
+1. Check canonical DB first (memoization and freshness gate).
+2. If unresolved, run local resolution for a fixed time budget $\tau_{local}$.
+3. If still unresolved, issue one cloud fill call with:
+   - example schema entry,
+   - known fields,
+   - explicit missing-field list.
+4. Upsert completed record with provenance back into DB.
+
+Policy variables:
+
+- $h_{db}$: DB complete-hit rate (fresh + all required fields available)
+- $\tau_{local}$: local time budget per unresolved source
+- $p_{escalate}$: escalation probability after local budget
+- $c_{fill}$: cost of one cloud fill call
+- $m_{miss}$: average missing-field count when escalation is needed
+
+Escalation probability definition:
+
+```math
+p_{escalate} = P\left(t_{local}>\tau_{local}\ \text{or}\ q_{local}<q_{min}\mid \text{DB miss, not overflow}\right)
+```
+
+Expected cloud fill calls/month:
+
+```math
+N_{fill}=S\cdot(1-r_h)\cdot(1-r_{over})\cdot(1-h_{db})\cdot p_{escalate}
+```
+
+Total cloud calls/month (hard route + overflow + fill calls):
+
+```math
+N_{cloud\_calls}=S\cdot\left[r_h+(1-r_h)\left(r_{over}+(1-r_{over})(1-h_{db})p_{escalate}\right)\right]
+```
+
+Web-aware monthly cloud cost:
+
+```math
+C_{month}^{web}=S\cdot\left[r_hc_h+(1-r_h)\left(r_{over}c_e+(1-r_{over})(1-h_{db})p_{escalate}c_{fill}\right)\right]
+```
+
+Single-call escalation benefit versus per-field escalation:
+
+```math
+N_{fill}^{legacy}\approx S\cdot(1-r_h)\cdot(1-r_{over})\cdot(1-h_{db})\cdot p_{escalate}\cdot m_{miss}
+```
+
+```math
+\text{Call reduction factor}=\frac{N_{fill}}{N_{fill}^{legacy}}=\frac{1}{m_{miss}}
+```
+
+Local CLI call budget (operational tracking):
+
+```math
+N_{cli}\approx S\cdot(1-r_h)\cdot(1-r_{over})\cdot(1-h_{db})\cdot k_{local}
+```
+
+where $k_{local}$ is bounded by local retry/step caps.
+
 ## 7) Baseline Constants for This Project
 
 - Baseline $S=40$: $\lambda_{peak}=44.75$ tokens/sec
@@ -253,7 +315,11 @@ At the end of each month:
 4. Replace $r_h$ with observed hard-route fraction.
 5. Re-estimate $\mu_{compute}$ and $\mu_{memory}$ from measured tokens/sec under production concurrency.
 6. Re-estimate memory pressure multiplier $f_{fit}$ from observed OOM, eviction, and KV pressure behavior.
-7. Recompute $C_{month}$ and $\rho$.
+7. Replace $h_{db}$ with observed DB complete-hit rate.
+8. Replace $p_{escalate}$ with observed escalation probability at configured $\tau_{local}$.
+9. Replace $c_{fill}$ with observed mean fill-call cost.
+10. Replace $m_{miss}$ with observed average missing-field count.
+11. Recompute $C_{month}$, $C_{month}^{web}$, $\rho$, and call-volume metrics.
 
 ## 13) Snapshot Data Entry Schema (for Real Numbers)
 
@@ -277,6 +343,13 @@ Use this schema for every test deployment window so model values can be replaced
 | `f_fit_obs` | 0..1 | Memory pressure multiplier from real run behavior. |
 | `memory_peak_gb` | GB | Peak memory observed during run. |
 | `cache_hit_rate_obs` | 0..1 | Observed prompt/cache hit rate. |
+| `db_hit_rate_obs` | 0..1 | Observed DB complete-hit rate. |
+| `local_time_budget_sec` | sec | Configured local resolve time budget before escalation. |
+| `p_escalate_obs` | 0..1 | Observed escalation probability after local budget. |
+| `c_fill_obs` | USD/call | Observed average cost for one fill-call escalation. |
+| `cloud_fill_calls_obs` | count | Number of cloud fill calls in snapshot window. |
+| `avg_missing_fields_obs` | count | Average missing fields when escalation occurs. |
+| `local_cli_calls_obs` | count | Local CLI call count used for resolution attempts. |
 | `r_h_obs` | 0..1 | Observed hard-route fraction to high-reasoning cloud route. |
 | `cloud_spend_usd` | USD | Cloud spend for snapshot window. |
 | `q_accept_obs` | 0..1 | Accepted-item rate from rubric review. |
@@ -301,6 +374,18 @@ r_{over,obs} = \max\left(0, \frac{\lambda_{peak,obs} - \mu_{eff,obs}}{\lambda_{p
 ```
 
 ```math
+N_{fill,obs}=sources_{completed}\cdot(1-r_{h,obs})\cdot(1-r_{over,obs})\cdot(1-h_{db,obs})\cdot p_{escalate,obs}
+```
+
+```math
+N_{cloud\_calls,obs}=sources_{completed}\cdot\left[r_{h,obs}+(1-r_{h,obs})\left(r_{over,obs}+(1-r_{over,obs})(1-h_{db,obs})p_{escalate,obs}\right)\right]
+```
+
+```math
+C_{month,obs}^{web}=S_{obs}\cdot\left[r_{h,obs}c_h+(1-r_{h,obs})\left(r_{over,obs}c_e+(1-r_{over,obs})(1-h_{db,obs})p_{escalate,obs}c_{fill,obs}\right)\right]
+```
+
+```math
 c_{cloud/source,obs} = \frac{cloud\_spend\_usd}{sources_{completed}}
 ```
 
@@ -310,9 +395,9 @@ C_{accept,obs} = \frac{TC_{month,obs}}{accepted\_items}
 
 ### 13.3 Snapshot Row Template
 
-| snapshot_id | architecture_option | git_commit | window_start_utc | window_end_utc | sources_completed | tokens_in | tokens_out | lambda_peak_obs | mu_compute_obs | mu_memory_obs | f_fit_obs | mu_eff_obs | rho_obs | r_over_obs | memory_peak_gb | cache_hit_rate_obs | r_h_obs | cloud_spend_usd | q_accept_obs | accepted_items | notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| snapshot_id | architecture_option | git_commit | window_start_utc | window_end_utc | sources_completed | tokens_in | tokens_out | lambda_peak_obs | mu_compute_obs | mu_memory_obs | f_fit_obs | mu_eff_obs | rho_obs | r_over_obs | memory_peak_gb | cache_hit_rate_obs | db_hit_rate_obs | local_time_budget_sec | p_escalate_obs | c_fill_obs | cloud_fill_calls_obs | avg_missing_fields_obs | local_cli_calls_obs | r_h_obs | cloud_spend_usd | q_accept_obs | accepted_items | notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| snap-001 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 ## 14) Reference Baselines Used
 
