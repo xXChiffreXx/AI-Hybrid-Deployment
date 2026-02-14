@@ -1,7 +1,5 @@
 # Software Architecture Documentation
 
-This folder contains implementation-oriented architecture docs derived from the current budget models and repository assumptions.
-
 ## Documents
 
 - [`00_system_architecture.md`](00_system_architecture.md): system context, component boundaries, trust boundaries, and interfaces.
@@ -17,5 +15,3 @@ These documents now describe the MVP flow:
 - batched timed local fill attempts for remaining missing fields across unresolved entries
 - cloud CLI fallback when local resolution exceeds time or confidence thresholds
 - final per-resource upserts with provenance and per-resource termination on completion
-
-The repository still does not include the corresponding runtime implementation (gateway/resolver service, invocation scripts, or deployment manifests).
