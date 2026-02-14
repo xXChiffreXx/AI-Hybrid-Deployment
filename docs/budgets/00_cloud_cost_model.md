@@ -169,20 +169,19 @@ Interpretation:
 
 ## 6A) Web-Aware Enrichment + Single Escalation Policy
 
-This project also uses a DB-aware enrichment workflow:
+This project also uses an MVP per-resource enrichment workflow aligned with architecture docs:
 
-1. Check canonical DB first (memoization and freshness gate).
-2. If unresolved, run local resolution for a fixed time budget $\tau_{local}$.
-3. If still unresolved, issue one cloud fill call with:
-   - example schema entry,
-   - known fields,
-   - explicit missing-field list.
-4. Upsert completed record with provenance back into DB.
+1. Ingest source and required schema fields.
+2. Run an initial local extraction pass with Ollama and upsert partial fields to canonical storage.
+3. Run required-field completion checks from SQL to enumerate unresolved fields.
+4. Apply timed local fill attempts with budget $\tau_{local}$ for unresolved fields.
+5. If local timing/confidence thresholds fail, issue one cloud fill call with schema context, known fields, and explicit missing-field list.
+6. Re-enter cloud output through resolver normalization plus `kb-writer`, then repeat completion checks until termination.
 
 Policy variables:
 
-- $h_{db}$: DB complete-hit rate (fresh + all required fields available)
-- $\tau_{local}$: local time budget per unresolved source
+- $h_{db}$: DB complete-hit rate after initial extraction/upsert and completion checks
+- $\tau_{local}$: local time budget per unresolved source during fill attempts
 - $p_{escalate}$: escalation probability after local budget
 - $c_{fill}$: cost of one cloud fill call
 - $m_{miss}$: average missing-field count when escalation is needed
@@ -190,7 +189,7 @@ Policy variables:
 Escalation probability definition:
 
 ```math
-p_{escalate} = \Pr\big(t_{local}>\tau_{local}\ \text{or}\ q_{local}<q_{min}\mid \text{DB miss, not overflow}\big)
+p_{escalate} = \Pr\big(t_{local}>\tau_{local}\ \text{or}\ q_{local}<q_{min}\mid \text{unresolved after initial upsert, not overflow}\big)
 ```
 
 Expected cloud fill calls/month:

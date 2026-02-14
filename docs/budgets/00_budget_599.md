@@ -18,21 +18,32 @@ If the 10GbE configuration raises actual procurement price above `$599`, keep th
 - 512 GB to 1 TB SSD
 - SSH access for small team (2-4 active users)
 
-Service layer is OS-agnostic because inference is standardized through `llama-server`.
+Service layer is OS-agnostic because local inference is standardized through `ollama-server`.
 
 ## Logical Architecture
 
-- `gateway` for route policy and budget controls
-- `llama-server` local endpoint
-- `redis` for cache and queue state
-- `qdrant` for sector retrieval memory
-- `kb-writer` to canonical `SQLite + Parquet`
+- `resolver-gateway` for per-resource orchestration, policy limits, and completion checks
+- `ollama-server` local endpoint for extraction and timed fill attempts
+- `cloud CLI adapter` for fallback fill calls when local thresholds fail
+- `kb-writer` for canonical writes to `SQLite + Parquet`
+- optional `redis` and `qdrant` for cache/retrieval support outside core MVP flow
 
 ## Deployment Pattern
 
-- Single-node compose stack
-- Local-first for routine tasks when available
-- Cloud for hard tasks and overflow during demand spikes
+- Single-node deployment with local-first execution and cloud fallback
+- Canonical write path enforced as `resolver-gateway -> kb-writer -> SQLite + Parquet`
+- Per-resource termination on required-field completion with provenance
+
+## MVP Runtime Flow (Aligned with Architecture Docs)
+
+1. Ingest user-fed source plus required schema fields.
+2. Run initial local extraction pass with `ollama-server`.
+3. Upsert extracted values through `kb-writer` into canonical stores.
+4. Enumerate missing required fields from SQL completion checks.
+5. For each missing field, run local fill attempts with fixed `tau_local`.
+6. If local timing/confidence thresholds fail, issue one cloud CLI fill call.
+7. Re-enter cloud outputs via `resolver-gateway` and `kb-writer` with provenance.
+8. Repeat completion checks until all required fields are complete, then terminate the resource job.
 
 ## Default Ollama Model
 

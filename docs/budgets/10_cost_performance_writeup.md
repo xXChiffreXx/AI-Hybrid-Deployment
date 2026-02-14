@@ -2,6 +2,19 @@
 
 This document compares the four machine-budget architectures for Track A knowledge-base production.
 
+## 0) Runtime Flow Assumption (Aligned with Architecture Docs)
+
+All budget comparisons assume the same per-resource MVP runtime flow:
+
+1. Ingest source plus required schema.
+2. Run initial local extraction with Ollama.
+3. Upsert extracted fields to canonical SQL/Parquet with provenance.
+4. Enumerate unresolved required fields via SQL completion checks.
+5. Run timed local fill attempts (`tau_local`) for unresolved fields.
+6. Escalate to one cloud CLI fill call only when local timing/confidence thresholds fail.
+7. Re-enter cloud output through `resolver-gateway -> kb-writer -> canonical store`.
+8. Terminate the resource job when required fields are complete and provenance is present.
+
 ## 1) Industry-Standard Comparison
 
 | Industry analysis mode                                 | Common source baseline                  | Previous doc state | Current state |
