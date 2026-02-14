@@ -1,24 +1,20 @@
-# Deployment and Operations Architecture
+# Deployment and Operations Architecture (MVP)
 
 ## Deployment Baseline
 
-All current budget options describe a single-node deployment pattern with local-first inference and cloud spill.
+MVP is a single-node deployment that resolves one resource job through local-first enrichment and cloud fallback.
 
 ```mermaid
 flowchart TB
-  subgraph H[Single Research Node]
-    G[Gateway]
-    L[llama-server]
-    R[Redis]
-    Q[Qdrant]
-    W[kb-writer]
-    S[SQLite]
-    P[Parquet]
-    B[backup job]
+  subgraph H["Single Research Node"]
+    G["Resolver Gateway"]
+    O["Ollama Server"]
+    W["kb-writer"]
+    S["SQLite"]
+    P["Parquet"]
+    B["Backup Job"]
 
-    G --> L
-    G --> R
-    G --> Q
+    G --> O
     G --> W
     W --> S
     W --> P
@@ -26,58 +22,73 @@ flowchart TB
     B --> P
   end
 
+  U["Research Client"] --> G
+  G --> D["Online Drug Data Source"]
+  G --> C["Cloud LLM via CLI"]
   V["Consumer Tools (Read-Only)"] --> S
   V --> P
-  U[Research Clients over SSH or API] --> G
-  G --> C[Cloud LLM]
 ```
 
 ## Runtime Control Plane
 
-Control decisions should be centralized in `gateway`:
+Control decisions are centralized in `resolver-gateway`:
 
-- route class selection (`local-default`, `local-long`, `cloud-hard`)
-- queue admission and concurrency caps
-- local timeout budget and escalation triggers
-- cloud budget ceilings and fallback limits
-- cloud reentry enforcement (`cloud -> gateway -> kb-writer -> canonical store`)
+- start and track per-resource job lifecycle
+- run initial local extraction pass through Ollama
+- enumerate missing required fields after initial SQL upsert
+- enforce `tau_local` per local fill attempt
+- evaluate confidence threshold before accepting local output
+- invoke cloud CLI fallback when local attempts fail threshold
+- enforce cloud reentry (`cloud -> resolver-gateway -> kb-writer -> canonical store`)
+- terminate job on schema completion
 
 ## Operational Metrics
 
-The following metrics are required for architecture validation:
+The following metrics are required for MVP control and validation:
 
-- `mu_compute_obs`, `mu_memory_obs`, `mu_eff_obs`
-- `rho_obs`, `r_over_obs`
-- `h_db_obs`, `p_escalate_obs`
-- `cloud_fill_calls_obs`, `local_cli_calls_obs`
-- `cloud_spend_usd`, `q_accept_obs`
-
-These map directly to the snapshot schemas in `docs/budgets/00_cloud_cost_model.md`.
+- `resources_started`, `resources_completed`, `resources_failed`
+- `fields_required_total`, `fields_resolved_local`, `fields_resolved_cloud`
+- `fields_unresolved`
+- `local_attempt_count`, `local_timeout_count`
+- `cloud_fill_call_count`, `cloud_fill_cost_usd`
+- `completion_latency_sec` (per resource)
+- `write_retry_count`, `write_failure_count`
 
 ## Failure Modes and Controls
 
 | Failure Mode | Control |
 | --- | --- |
-| local inference saturation | queue cap, overflow-to-cloud policy, route throttling |
-| low memory headroom | strict context/concurrency limits and `f_fit` monitoring |
-| repeated unresolved items | single cloud fill escalation with missing-field targeting |
-| canonical store write failures | idempotent writer operations and retry with dead-letter capture |
-| stale derived views | regenerate read-only views from canonical store snapshots |
+| local extraction misses many fields | run deterministic missing-field scan immediately after initial upsert |
+| local fill attempts exceed time budget | enforce `tau_local` and trigger cloud CLI fallback |
+| low-confidence local fills | reject local fill and escalate to cloud CLI |
+| cloud output bypasses write policy | block direct DB writes; require resolver-gateway reentry path |
+| canonical write failures | idempotent upserts, retries, and failed-write capture for replay |
+| never-ending resource jobs | enforce termination rule based on required-field completion check |
+
+## Termination Policy
+
+A resource job terminates when:
+
+- all required schema fields are complete in SQL, and
+- provenance is present for each resolved field, and
+- the final write transaction succeeds.
+
+If unresolved fields remain after configured retry limits, terminate as failed and persist unresolved-field diagnostics.
 
 ## Backup and Recovery
 
 - snapshot `SQLite` and `Parquet` on schedule.
 - keep retention windows aligned with research cycle checkpoints.
 - periodically test restore into a clean node.
-- treat any downstream read-only view artifacts as regenerable.
+- treat downstream read-only view artifacts as regenerable.
 
 ## Implementation Gap Register
 
 Current repository gaps relative to this architecture:
 
-- no gateway service code
-- no local/cloud invocation adapters
+- no resolver-gateway service code
+- no Ollama/cloud CLI adapters
 - no deployment manifests or compose files
 - no operational scripts for snapshot, restore, or metric export
 
-This means the repository now has architecture documentation and budget analysis, but not a runnable stack yet.
+This repository currently contains architecture documentation and budget analysis, but not a runnable MVP stack yet.

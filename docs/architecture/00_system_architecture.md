@@ -1,12 +1,16 @@
-# Software Architecture Baseline
+# Software Architecture Baseline (MVP)
 
 ## Purpose
 
-Define the actual software architecture implied by the budget documents, independent of machine cost tier.
+Define the MVP architecture for user-fed online drug resources:
+
+- local-first extraction and fill using Ollama
+- cloud CLI fallback for unresolved missing fields
+- canonical persistence with provenance
 
 ## Status
 
-- Architecture status: baseline design
+- Architecture status: MVP baseline design
 - Implementation status: not yet present in this repository
 
 ## Source Assumptions
@@ -20,32 +24,38 @@ This architecture is derived from these references:
 - `docs/budgets/00_cloud_cost_model.md`
 - `KNOWLEDGE_BASE_ITEMS.md`
 
+## MVP Design Decision
+
+For MVP, orchestration and local resolution are treated as one logical service:
+
+- `resolver-gateway` orchestrates DB checks, local fill attempts, cloud fallback, and completion checks.
+- `ollama-server` performs local extraction/fill inference calls.
+- the older conceptual split (`gateway` vs separate local route controller) is collapsed into this MVP orchestration path.
+
 ## Architecture Drivers
 
-- Local-first generation for normal load.
-- Cloud fallback for hard tasks, overflow, and unresolved local runs.
+- Local-first enrichment for routine and missing-field resolution.
+- Explicit per-field local time budget (`tau_local`) before cloud fallback.
 - Canonical store in `SQLite + Parquet`, not markdown.
 - Tool-agnostic read-only views over canonical data.
-- Same software design across all budget tiers; only capacity and performance envelopes change.
+- Cloud responses must re-enter through the local write path with provenance.
 
 ## System Context
 
 ```mermaid
 flowchart LR
-  U[Researcher Client] --> G[Gateway API]
+  U["Researcher Client"] --> G["Resolver Gateway (MVP)"]
 
-  subgraph N[Research Node]
-    G --> L[llama-server]
-    G --> R[Redis]
-    G --> Q[Qdrant]
-    G --> K[kb-writer]
-    K --> S[SQLite]
-    K --> P[Parquet]
-    B[Backup Scheduler] --> S
+  subgraph N["Research Node"]
+    G --> O["Ollama Server"]
+    G --> W["kb-writer"]
+    W --> S["SQLite"]
+    W --> P["Parquet"]
+    B["Backup Scheduler"] --> S
     B --> P
   end
 
-  G --> C[Cloud LLM Route]
+  G --> C["Cloud CLI Fill Route"]
   S --> V["Consumer Tools (Read-Only)"]
   P --> V
 ```
@@ -54,49 +64,52 @@ flowchart LR
 
 | Component | Role | Inputs | Outputs |
 | --- | --- | --- | --- |
-| `gateway` | Central control plane for routing, budgets, and fallback | client requests, queue state, policy | local or cloud invocation decisions, normalized responses |
-| `llama-server` | Local OpenAI-compatible inference endpoint | prompt payload from gateway | local model responses |
-| `redis` | Cache and queue coordination | request hashes, queue counters, state | cache hits, queue/pressure telemetry |
-| `qdrant` | Retrieval memory by sector | query embeddings/filters | ranked context chunks |
-| `kb-writer` | Canonical knowledge item writer | validated item payload plus provenance | normalized records in SQLite and Parquet |
+| `resolver-gateway` | Orchestrates per-resource lifecycle and policy enforcement | user-fed source, schema requirements, DB state | local/cloud resolution decisions and normalized records |
+| `ollama-server` | Local LLM inference for initial extraction and timed field filling | prompts from resolver-gateway plus source context | extracted/filled values with local confidence signals |
+| `cloud CLI adapter` | Executes one cloud fill call when local attempts exceed threshold | missing-field request, known fields, schema entry | filled fields and cloud provenance |
+| `kb-writer` | Canonical write path | normalized values and provenance | upserts in SQLite and Parquet |
+| `canonical store` | Source-of-truth dataset | writes from `kb-writer` only | queryable records for completion checks and analytics |
 | `consumer tools` | Optional read-only access layer | canonical records | tool-specific views, dashboards, or exports |
-| `backup scheduler` | Snapshot/retention operations | SQLite and Parquet stores | recoverable backups |
+| `backup scheduler` | Snapshot and retention operations | SQLite and Parquet stores | recoverable backups |
 
 ## Trust Boundaries
 
 ```mermaid
 flowchart TB
-  subgraph T1[Trusted Research Node]
-    G1[Gateway]
-    L1[llama-server]
-    R1[Redis]
-    Q1[Qdrant]
-    S1[SQLite and Parquet]
+  subgraph T1["Trusted Research Node"]
+    G1["Resolver Gateway"]
+    O1["Ollama Server"]
+    W1["kb-writer"]
+    S1["SQLite and Parquet"]
   end
 
-  subgraph T2[External Services]
-    C1[Cloud LLM API]
+  subgraph T2["External Services"]
+    D1["Online Drug Data Source"]
+    C1["Cloud LLM via CLI"]
   end
 
-  U1[Researcher Client] --> G1
+  U1["Researcher Client"] --> G1
+  G1 --> D1
   G1 --> C1
+  G1 --> W1
+  W1 --> S1
 ```
 
 Boundary notes:
 
-- `gateway` is the only component that can invoke cloud APIs.
-- cloud responses must re-enter through `gateway -> kb-writer` before any canonical store write.
-- canonical stores are local institutional assets and should not be directly written by client tools.
-- any downstream view tool is a derived consumer, not source-of-truth.
+- only `resolver-gateway` can call external data sources or cloud LLM routes.
+- cloud responses never write directly to canonical storage.
+- mandatory persistence path is `cloud -> resolver-gateway -> kb-writer -> SQLite/Parquet`.
+- downstream view tools are derived consumers, not source-of-truth.
 
 ## Cross-Tier Invariance
 
 The following are fixed across `$599`, `$2,500`, `$5,000`, `$7,500` tiers:
 
-- component topology
-- routing concepts (`local-default`, `local-long`, `cloud-hard`)
-- DB-first enrichment and single escalation logic
+- local-first plus cloud fallback workflow
+- DB-first enrichment and completion-driven termination
 - canonical data target (`SQLite + Parquet`)
+- cloud reentry through `kb-writer`
 
 What changes by tier:
 
