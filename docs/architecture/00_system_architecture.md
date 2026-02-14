@@ -4,7 +4,7 @@
 
 Define the MVP architecture for user-fed online drug resources:
 
-- local-first extraction and fill using Ollama
+- local-first extraction and batched gap-fill using Ollama
 - cloud CLI fallback for unresolved missing fields
 - canonical persistence with provenance
 
@@ -28,14 +28,16 @@ This architecture is derived from these references:
 
 For MVP, orchestration and local resolution are treated as one logical service:
 
-- `resolver-gateway` orchestrates DB checks, local fill attempts, cloud fallback, and completion checks.
+- `resolver-gateway` orchestrates DB checks, unresolved-entry batching, local fill attempts, cloud fallback, and completion checks.
 - `ollama-server` performs local extraction/fill inference calls.
 - the older conceptual split (`gateway` vs separate local route controller) is collapsed into this MVP orchestration path.
 
 ## Architecture Drivers
 
 - Local-first enrichment for routine and missing-field resolution.
-- Explicit per-field local time budget (`tau_local`) before cloud fallback.
+- DB-first completion scanning before any secondary web-aware enrichment.
+- Batched unresolved-field resolution across entries with overlapping source context.
+- Explicit local time budget (`tau_local`) on batched unresolved-field resolution before cloud fallback.
 - Canonical store in `SQLite + Parquet`, not markdown.
 - Tool-agnostic read-only views over canonical data.
 - Cloud responses must re-enter through the local write path with provenance.
@@ -64,9 +66,9 @@ flowchart LR
 
 | Component | Role | Inputs | Outputs |
 | --- | --- | --- | --- |
-| `resolver-gateway` | Orchestrates per-resource lifecycle and policy enforcement | user-fed source, schema requirements, DB state | local/cloud resolution decisions and normalized records |
-| `ollama-server` | Local LLM inference for initial extraction and timed field filling | prompts from resolver-gateway plus source context | extracted/filled values with local confidence signals |
-| `cloud CLI adapter` | Executes one cloud fill call when local attempts exceed threshold | missing-field request, known fields, schema entry | filled fields and cloud provenance |
+| `resolver-gateway` | Orchestrates per-resource lifecycle, unresolved-entry batching, and policy enforcement | user-fed source, schema requirements, DB state | local/cloud resolution decisions, batch plans, normalized records |
+| `ollama-server` | Local LLM inference for initial extraction and timed batch field filling | prompts from resolver-gateway plus grouped source context | extracted/filled values with local confidence signals |
+| `cloud CLI adapter` | Executes one cloud fill call when batch local attempts exceed threshold | batched missing-field request, known fields, schema entries | filled fields and cloud provenance |
 | `kb-writer` | Canonical write path | normalized values and provenance | upserts in SQLite and Parquet |
 | `canonical store` | Source-of-truth dataset | writes from `kb-writer` only | queryable records for completion checks and analytics |
 | `consumer tools` | Optional read-only access layer | canonical records | tool-specific views, dashboards, or exports |
@@ -107,7 +109,8 @@ Boundary notes:
 The following are fixed across `$599`, `$2,500`, `$5,000`, `$7,500` tiers:
 
 - local-first plus cloud fallback workflow
-- DB-first enrichment and completion-driven termination
+- per-entry ingest plus DB-first completion scanning
+- batched unresolved-field enrichment with per-resource completion-driven termination
 - canonical data target (`SQLite + Parquet`)
 - cloud reentry through `kb-writer`
 

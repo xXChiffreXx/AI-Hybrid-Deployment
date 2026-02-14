@@ -167,29 +167,32 @@ Interpretation:
 - hard tasks always use the high-reasoning cloud route
 - overflow of remaining tasks uses the economy route
 
-## 6A) Web-Aware Enrichment + Single Escalation Policy
+## 6A) Web-Aware Enrichment + Batch Escalation Policy
 
 This project also uses an MVP per-resource enrichment workflow aligned with architecture docs:
 
-1. Ingest source and required schema fields.
-2. Run an initial local extraction pass with Ollama and upsert partial fields to canonical storage.
-3. Run required-field completion checks from SQL to enumerate unresolved fields.
-4. Apply timed local fill attempts with budget $\tau_{local}$ for unresolved fields.
-5. If local timing/confidence thresholds fail, issue one cloud fill call with schema context, known fields, and explicit missing-field list.
-6. Re-enter cloud output through resolver normalization plus `kb-writer`, then repeat completion checks until termination.
+1. Ingest each source and required schema fields.
+2. Run an initial local extraction pass with Ollama per source and upsert partial fields to canonical storage.
+3. Run required-field completion checks from SQL to enumerate unresolved fields across unresolved resources.
+4. Build unresolved-entry batches using shared source context and missing-field shape.
+5. Apply timed local fill attempts with budget $\tau_{local}$ per unresolved batch.
+6. If local timing/confidence thresholds fail, issue one cloud fill call for the unresolved batch payload with schema context, known fields, and explicit missing-field list.
+7. Re-enter cloud output through resolver normalization plus `kb-writer` with per-resource upserts, then repeat completion checks until termination.
+
+The cost equations below remain normalized per source. Batching gains are captured operationally through observed escalation rate, call counts, and fill-call cost.
 
 Policy variables:
 
 - $h_{db}$: DB complete-hit rate after initial extraction/upsert and completion checks
-- $\tau_{local}$: local time budget per unresolved source during fill attempts
-- $p_{escalate}$: escalation probability after local budget
-- $c_{fill}$: cost of one cloud fill call
+- $\tau_{local}$: local time budget per unresolved batch during fill attempts
+- $p_{escalate}$: escalation probability after local batch budget
+- $c_{fill}$: cost of one cloud fill call for an unresolved batch payload
 - $m_{miss}$: average missing-field count when escalation is needed
 
 Escalation probability definition:
 
 ```math
-p_{escalate} = \Pr\big(t_{local}>\tau_{local}\ \text{or}\ q_{local}<q_{min}\mid \text{unresolved after initial upsert, not overflow}\big)
+p_{escalate} = \Pr\big(t_{local,batch}>\tau_{local}\ \text{or}\ q_{local,batch}<q_{min}\mid \text{unresolved after initial upsert, not overflow}\big)
 ```
 
 Expected cloud fill calls/month:
@@ -220,13 +223,13 @@ N_{fill}^{legacy}\approx S\cdot(1-r_h)\cdot(1-r_{over})\cdot(1-h_{db})\cdot p_{e
 \text{Call reduction factor}=\frac{N_{fill}}{N_{fill}^{legacy}}=\frac{1}{m_{miss}}
 ```
 
-Local CLI call budget (operational tracking):
+Local batch CLI call budget (operational tracking):
 
 ```math
 N_{cli}\approx S\cdot(1-r_h)\cdot(1-r_{over})\cdot(1-h_{db})\cdot k_{local}
 ```
 
-where $k_{local}$ is bounded by local retry/step caps.
+where $k_{local}$ is bounded by local batch retry/step caps.
 
 ## 7) Baseline Constants for This Project
 
@@ -323,7 +326,7 @@ At the end of each month:
 5. Re-estimate $\mu_{compute}$ and $\mu_{memory}$ from measured tokens/sec under production concurrency.
 6. Re-estimate memory pressure multiplier $f_{fit}$ from observed OOM, eviction, and KV pressure behavior.
 7. Replace $h_{db}$ with observed DB complete-hit rate.
-8. Replace $p_{escalate}$ with observed escalation probability at configured $\tau_{local}$.
+8. Replace $p_{escalate}$ with observed escalation probability at configured $\tau_{local}$ for batched local resolution.
 9. Replace $c_{fill}$ with observed mean fill-call cost.
 10. Replace $m_{miss}$ with observed average missing-field count.
 11. Recompute $C_{month}$, $C_{month}^{web}$, $\rho$, and call-volume metrics.
@@ -350,13 +353,16 @@ Use this schema for every test deployment window so model values can be replaced
 | `f_fit_obs`              | 0..1       | Memory pressure multiplier from real run behavior.          |
 | `memory_peak_gb`         | GB         | Peak memory observed during run.                            |
 | `cache_hit_rate_obs`     | 0..1       | Observed prompt/cache hit rate.                             |
-| `db_hit_rate_obs`        | 0..1       | Observed DB complete-hit rate.                              |
-| `local_time_budget_sec`  | sec        | Configured local resolve time budget before escalation.     |
-| `p_escalate_obs`         | 0..1       | Observed escalation probability after local budget.         |
-| `c_fill_obs`             | USD/call   | Observed average cost for one fill-call escalation.         |
-| `cloud_fill_calls_obs`   | count      | Number of cloud fill calls in snapshot window.              |
+| `h_db_obs`              | 0..1       | Observed DB complete-hit rate.                              |
+| `local_time_budget_sec`  | sec        | Configured local resolve time budget before batch escalation. |
+| `p_escalate_obs`         | 0..1       | Observed escalation probability after local batch budget.   |
+| `c_fill_obs`             | USD/call   | Observed average cost for one batch fill-call escalation.   |
+| `cloud_fill_calls_obs`   | count      | Number of cloud fill calls (batch escalations) in window.  |
 | `avg_missing_fields_obs` | count      | Average missing fields when escalation occurs.              |
-| `local_cli_calls_obs`    | count      | Local CLI call count used for resolution attempts.          |
+| `local_cli_calls_obs`    | count      | Local CLI call count used for batched resolution attempts.  |
+| `batch_count_obs`        | count      | Number of unresolved batches processed in the window.       |
+| `batch_size_avg_obs`     | count      | Average unresolved resources per processed batch.           |
+| `batch_cloud_escalation_count_obs` | count | Number of batches escalated to cloud fill.              |
 | `r_h_obs`                | 0..1       | Observed hard-route fraction to high-reasoning cloud route. |
 | `cloud_spend_usd`        | USD        | Cloud spend for snapshot window.                            |
 | `q_accept_obs`           | 0..1       | Accepted-item rate from rubric review.                      |
@@ -402,9 +408,9 @@ C_{accept,obs} = \frac{TC_{month,obs}}{accepted\_items}
 
 ### 13.3 Snapshot Row Template
 
-| snapshot_id | architecture_option | git_commit | window_start_utc | window_end_utc | sources_completed | tokens_in | tokens_out | lambda_peak_obs | mu_compute_obs | mu_memory_obs | f_fit_obs | mu_eff_obs | rho_obs | r_over_obs | memory_peak_gb | cache_hit_rate_obs | db_hit_rate_obs | local_time_budget_sec | p_escalate_obs | c_fill_obs | cloud_fill_calls_obs | avg_missing_fields_obs | local_cli_calls_obs | r_h_obs | cloud_spend_usd | q_accept_obs | accepted_items | notes |
-| ----------- | ------------------- | ---------- | ---------------- | -------------- | ----------------- | --------- | ---------- | --------------- | -------------- | ------------- | --------- | ---------- | ------- | ---------- | -------------- | ------------------ | --------------- | --------------------- | -------------- | ---------- | -------------------- | ---------------------- | ------------------- | ------- | --------------- | ------------ | -------------- | ----- |
-| snap-001    |                     |            |                  |                |                   |           |            |                 |                |               |           |            |         |            |                |                    |                 |                       |                |            |                      |                        |                     |         |                 |              |                |       |
+| snapshot_id | architecture_option | git_commit | window_start_utc | window_end_utc | sources_completed | tokens_in | tokens_out | lambda_peak_obs | mu_compute_obs | mu_memory_obs | f_fit_obs | mu_eff_obs | rho_obs | r_over_obs | memory_peak_gb | cache_hit_rate_obs | h_db_obs | local_time_budget_sec | p_escalate_obs | c_fill_obs | cloud_fill_calls_obs | avg_missing_fields_obs | local_cli_calls_obs | batch_count_obs | batch_size_avg_obs | batch_cloud_escalation_count_obs | r_h_obs | cloud_spend_usd | q_accept_obs | accepted_items | notes |
+| ----------- | ------------------- | ---------- | ---------------- | -------------- | ----------------- | --------- | ---------- | --------------- | -------------- | ------------- | --------- | ---------- | ------- | ---------- | -------------- | ------------------ | --------------- | --------------------- | -------------- | ---------- | -------------------- | ---------------------- | ------------------- | --------------- | ------------------ | -------------------------------- | ------- | --------------- | ------------ | -------------- | ----- |
+| snap-001    |                     |            |                  |                |                   |           |            |                 |                |               |           |            |         |            |                |                    |                 |                       |                |            |                      |                        |                     |                 |                    |                                  |         |                 |              |                |       |
 
 ## 14) Reference Baselines Used
 

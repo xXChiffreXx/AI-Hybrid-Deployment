@@ -4,16 +4,17 @@ This document compares the four machine-budget architectures for Track A knowled
 
 ## 0) Runtime Flow Assumption (Aligned with Architecture Docs)
 
-All budget comparisons assume the same per-resource MVP runtime flow:
+All budget comparisons assume the same MVP runtime flow: per-resource ingest/extraction followed by batched unresolved-field resolution.
 
 1. Ingest source plus required schema.
 2. Run initial local extraction with Ollama.
 3. Upsert extracted fields to canonical SQL/Parquet with provenance.
-4. Enumerate unresolved required fields via SQL completion checks.
-5. Run timed local fill attempts (`tau_local`) for unresolved fields.
-6. Escalate to one cloud CLI fill call only when local timing/confidence thresholds fail.
-7. Re-enter cloud output through `resolver-gateway -> kb-writer -> canonical store`.
-8. Terminate the resource job when required fields are complete and provenance is present.
+4. Enumerate unresolved required fields via SQL completion checks across unresolved resources.
+5. Build unresolved-entry batches using shared source context and missing-field shape.
+6. Run timed local fill attempts (`tau_local`) per unresolved batch.
+7. Escalate to one cloud CLI fill call per unresolved batch only when local timing/confidence thresholds fail.
+8. Re-enter cloud output through `resolver-gateway -> kb-writer -> canonical store` with per-resource upserts.
+9. Terminate each resource job when required fields are complete and provenance is present.
 
 ## 1) Industry-Standard Comparison
 
@@ -35,7 +36,7 @@ Cloud monthly cost:
 C_{month}=S\left(r_hc_h+(1-r_h)r_{over}c_e\right)
 ```
 
-Web-aware monthly cloud cost (DB-aware + local time budget + single fill escalation):
+Web-aware monthly cloud cost (DB-aware + local time budget + single fill escalation per unresolved batch):
 
 ```math
 C_{month}^{web}=S\left[r_hc_h+(1-r_h)\left(r_{over}c_e+(1-r_{over})(1-h_{db})p_{escalate}c_{fill}\right)\right]
@@ -189,10 +190,10 @@ After 2-4 weeks of production telemetry, update:
 
 Populate this table from the per-architecture snapshot entries to compare real pilot performance.
 
-| Snapshot ID | Git Commit | Date (UTC) | Architecture | Model Profile | Context | Concurrency | Sources/Day Observed | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | `h_db_obs` | `local_time_budget_sec` | `p_escalate_obs` | `c_fill_obs` (USD/call) | `cloud_fill_calls_obs` | `local_cli_calls_obs` | Cloud Spend Window (USD) | `q_accept_obs` | Notes |
-| ----------- | ---------- | ---------- | ------------ | ------------- | ------: | ----------: | -------------------: | -------------------: | --------: | -----------: | ---------------: | ---------: | ----------------------: | ---------------: | ----------------------: | ---------------------: | --------------------: | -----------------------: | -------------: | ----- |
-| snap-001    |            |            |              |               |         |             |                      |                      |           |              |                  |            |                         |                  |                         |                        |                       |                          |                |       |
-| snap-002    |            |            |              |               |         |             |                      |                      |           |              |                  |            |                         |                  |                         |                        |                       |                          |                |       |
+| Snapshot ID | Git Commit | Date (UTC) | Architecture | Model Profile | Context | Concurrency | Sources/Day Observed | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | `h_db_obs` | `local_time_budget_sec` | `p_escalate_obs` | `c_fill_obs` (USD/call) | `cloud_fill_calls_obs` | `local_cli_calls_obs` | `batch_count_obs` | `batch_size_avg_obs` | `batch_cloud_escalation_count_obs` | Cloud Spend Window (USD) | `q_accept_obs` | Notes |
+| ----------- | ---------- | ---------- | ------------ | ------------- | ------: | ----------: | -------------------: | -------------------: | --------: | -----------: | ---------------: | ---------: | ----------------------: | ---------------: | ----------------------: | ---------------------: | --------------------: | -----------------: | --------------------: | ---------------------------------: | -----------------------: | -------------: | ----- |
+| snap-001    |            |            |              |               |         |             |                      |                      |           |              |                  |            |                         |                  |                         |                        |                       |                   |                      |                                    |                          |                |       |
+| snap-002    |            |            |              |               |         |             |                      |                      |           |              |                  |            |                         |                  |                         |                        |                       |                   |                      |                                    |                          |                |       |
 
 Use this roll-up to replace model values with observed medians in Sections 3-6 after the pilot window.
 

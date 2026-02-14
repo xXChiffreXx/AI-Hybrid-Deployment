@@ -23,7 +23,7 @@ Service layer is OS-agnostic because local inference is standardized through `ol
 ## Logical Architecture
 
 - `resolver-gateway` for per-resource orchestration, policy limits, and completion checks
-- `ollama-server` local endpoint for extraction and timed fill attempts
+- `ollama-server` local endpoint for initial extraction and timed batched fill attempts
 - `cloud CLI adapter` for fallback fill calls when local thresholds fail
 - `kb-writer` for canonical writes to `SQLite + Parquet`
 - optional `redis` and `qdrant` for cache/retrieval support outside core MVP flow
@@ -39,11 +39,12 @@ Service layer is OS-agnostic because local inference is standardized through `ol
 1. Ingest user-fed source plus required schema fields.
 2. Run initial local extraction pass with `ollama-server`.
 3. Upsert extracted values through `kb-writer` into canonical stores.
-4. Enumerate missing required fields from SQL completion checks.
-5. For each missing field, run local fill attempts with fixed `tau_local`.
-6. If local timing/confidence thresholds fail, issue one cloud CLI fill call.
-7. Re-enter cloud outputs via `resolver-gateway` and `kb-writer` with provenance.
-8. Repeat completion checks until all required fields are complete, then terminate the resource job.
+4. Enumerate missing required fields from SQL completion checks across unresolved resources.
+5. Build unresolved-entry batches from SQL gaps using shared source context and missing-field shape.
+6. For each batch, run local fill attempts with fixed `tau_local`.
+7. If local timing/confidence thresholds fail, issue one cloud CLI fill call for the unresolved batch payload.
+8. Re-enter cloud outputs via `resolver-gateway` and `kb-writer` with per-resource upserts and provenance.
+9. Repeat completion checks and batch cycles until all required fields are complete, then terminate each resource job.
 
 ## Default Ollama Model
 
@@ -154,9 +155,9 @@ Conservative web-aware annual cloud range: `$225 - $451`.
 
 Use one row per pilot snapshot window (recommended: 24h to 168h windows).
 
-| Snapshot ID | Git Commit | Start (UTC) | End (UTC) | Model Profile | Context Tokens | Concurrency | Sources Completed | Tokens In | Tokens Out | Peak Arrival `lambda_peak_obs` (tok/s) | `mu_compute_obs` (tok/s) | `mu_memory_obs` (tok/s) | `f_fit_obs` | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | `h_db_obs` | `local_time_budget_sec` | `p_escalate_obs` | `c_fill_obs` (USD/call) | `cloud_fill_calls_obs` | `avg_missing_fields_obs` | `local_cli_calls_obs` | Cloud Spend (USD) | `q_accept_obs` | Notes |
-| ----------- | ---------- | ----------- | --------- | ------------- | -------------- | ----------- | ----------------- | --------- | ---------- | -------------------------------------- | ------------------------ | ----------------------- | ----------- | -------------------- | --------- | ------------ | ---------------- | ---------- | ----------------------- | ---------------- | ----------------------- | ---------------------- | ------------------------ | --------------------- | ----------------- | -------------- | ----- |
-| snap-001    |            |             |           |               |                |             |                   |           |            |                                        |                          |                         |             |                      |           |              |                  |            |                         |                  |                         |                        |                          |                       |                   |                |       |
+| Snapshot ID | Git Commit | Start (UTC) | End (UTC) | Model Profile | Context Tokens | Concurrency | Sources Completed | Tokens In | Tokens Out | Peak Arrival `lambda_peak_obs` (tok/s) | `mu_compute_obs` (tok/s) | `mu_memory_obs` (tok/s) | `f_fit_obs` | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | `h_db_obs` | `local_time_budget_sec` | `p_escalate_obs` | `c_fill_obs` (USD/call) | `cloud_fill_calls_obs` | `avg_missing_fields_obs` | `local_cli_calls_obs` | `batch_count_obs` | `batch_size_avg_obs` | `batch_cloud_escalation_count_obs` | Cloud Spend (USD) | `q_accept_obs` | Notes |
+| ----------- | ---------- | ----------- | --------- | ------------- | -------------- | ----------- | ----------------- | --------- | ---------- | -------------------------------------- | ------------------------ | ----------------------- | ----------- | -------------------- | --------- | ------------ | ---------------- | ---------- | ----------------------- | ---------------- | ----------------------- | ---------------------- | ------------------------ | --------------------- | ----------------- | -------------------- | ----------------------------------- | ----------------- | -------------- | ----- |
+| snap-001    |            |             |           |               |                |             |                   |           |            |                                        |                          |                         |             |                      |           |              |                  |            |                         |                  |                         |                        |                          |                       |                   |                      |                                     |                   |                |       |
 
 Derived fields for this architecture:
 

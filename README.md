@@ -54,7 +54,7 @@ Notes:
 - Current modeled workload baseline is `40` sources/month (stress scenario `72`/month).
 - Throughput is memory-constrained effective throughput (&mu;<sub>eff</sub>), not theoretical peak.
 - Costs scale approximately linearly with token volume.
-- Web-aware enrichment policy (DB-first, local time budget, single cloud fill escalation) is modeled in `docs/budgets/00_cloud_cost_model.md`.
+- Web-aware enrichment policy (DB-first, batched local resolution, single cloud fill escalation per unresolved batch) is modeled in `docs/budgets/00_cloud_cost_model.md`.
 - Snapshot data-entry templates are included in each budget doc and in the shared schema section of [`docs/budgets/00_cloud_cost_model.md`](docs/budgets/00_cloud_cost_model.md).
 
 ## Knowledge Base Spec

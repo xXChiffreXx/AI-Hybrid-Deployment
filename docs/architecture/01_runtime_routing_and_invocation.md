@@ -2,21 +2,30 @@
 
 ## Purpose
 
-Define the runtime lifecycle for one user-fed online resource in the MVP architecture.
+Define the runtime lifecycle for user-fed online resources in the MVP architecture, including per-entry ingest and batched missing-field resolution.
 
 ## MVP Runtime Policy
 
-For each user-fed resource, the resolver must execute this flow in order:
+The resolver must execute this flow in order:
 
-1. Ingest source and required schema fields.
-2. Run initial local extraction pass with Ollama over the source content.
+1. Ingest each user-fed source with required schema fields.
+2. Run an initial local extraction pass with Ollama for each ingested source.
 3. Upsert extracted fields into SQL (and related canonical stores) with provenance.
-4. Enumerate still-missing required fields.
-5. For each missing field, run local resolution with a fixed time budget (`tau_local`).
-6. If local resolution exceeds budget or fails confidence threshold, issue one cloud CLI fill call.
-7. Upsert cloud-filled values with provenance.
-8. Repeat until all required fields for that resource are complete.
-9. Terminate the resource job when completion criteria are met.
+4. Enumerate still-missing required fields from SQL across all unresolved resource jobs.
+5. Build enrichment batches from unresolved entries, grouping by overlapping source context and missing-field shape.
+6. For each batch, run local resolution with the same fixed time and confidence gates (`tau_local`, `q_min`).
+7. If a batch local resolution exceeds budget or fails confidence threshold, issue one cloud CLI fill call for the unresolved batch payload.
+8. Upsert resolved values per resource record with provenance and rerun completion checks.
+9. Repeat batching until all required fields for each resource are complete.
+10. Terminate each resource job independently when completion criteria are met.
+
+## Batch Formation Rules
+
+- keep ingest and initial extraction per resource for traceability and idempotency.
+- batch only unresolved entries after the initial SQL upsert and deterministic completion scan.
+- use stable batch keys that favor shared retrieval context (for example: source domain, schema type, and overlapping missing-field set).
+- write results back per record; batching is an enrichment optimization, not a storage granularity change.
+- avoid overwriting already-complete required fields unless explicit correction policy allows it.
 
 ## Cloud Reentry Rule
 
@@ -35,26 +44,30 @@ sequenceDiagram
   participant W as kb-writer
   participant S as SQLite
 
-  U->>G: submit online source plus schema
-  G->>O: initial extraction pass over source
-  O-->>G: partial fields plus local provenance
-  G->>W: upsert initial extracted values
-  W->>S: write
-
-  loop each missing required field
-    G->>O: local resolution attempt with tau_local
-    alt local resolution succeeds within budget
-      O-->>G: field value plus local provenance
-    else timeout or low confidence
-      G->>C: cloud fill request (schema example, known fields, missing list)
-      C-->>G: filled fields plus cloud provenance
-    end
-    G->>W: upsert resolved values plus provenance
+  loop each submitted source
+    U->>G: submit online source plus schema
+    G->>O: initial extraction pass over source
+    O-->>G: partial fields plus local provenance
+    G->>W: upsert initial extracted values
     W->>S: write
   end
 
-  G->>S: completion check for required fields
-  G-->>U: resource complete and job terminated
+  G->>S: completion scan and unresolved-field query
+
+  loop each unresolved batch
+    G->>O: batched local resolution with tau_local
+    alt batch local resolution succeeds within budget and confidence
+      O-->>G: resolved values plus local provenance
+    else timeout or low confidence
+      G->>C: cloud fill request (known fields, missing list, batched sources)
+      C-->>G: filled values plus cloud provenance
+    end
+    G->>W: upsert resolved values per resource plus provenance
+    W->>S: write
+  end
+
+  G->>S: per-resource completion checks
+  G-->>U: each completed resource job terminated
 ```
 
 ## Termination Contract
@@ -65,6 +78,8 @@ A resource job is complete when:
 - provenance metadata exists for each resolved field, and
 - final upsert has succeeded.
 
+Batch processing does not change these per-resource completion requirements.
+
 ## Invocation Contracts
 
 These are proposed contracts for MVP implementation; they are not implemented in this repository yet.
@@ -72,8 +87,8 @@ These are proposed contracts for MVP implementation; they are not implemented in
 | Interface | Proposed Contract | Notes |
 | --- | --- | --- |
 | Client to resolver | `POST /mvp/ingest-source` | input should include source locator plus required field schema. |
-| Resolver to Ollama | local Ollama API call | used for both initial extraction and timed local fill attempts. |
-| Resolver to cloud fill | cloud CLI invocation | called only after local budget/confidence failure. |
+| Resolver to Ollama | local Ollama API call | used for both initial extraction and batched timed local fill attempts. |
+| Resolver to cloud fill | cloud CLI invocation | called only after local batch budget/confidence failure. |
 | Resolver to writer | internal RPC or module call | centralizes normalization and write idempotency. |
 | Cloud direct to store | not allowed | cloud output must re-enter through resolver and `kb-writer`. |
 
@@ -84,6 +99,7 @@ Expected MVP implementation artifacts:
 - resolver-gateway service
 - Ollama invocation adapter
 - cloud CLI invocation adapter
+- unresolved-entry batch planner and grouping policy
 - writer integration module
 - schema-completion checker and `tau_local` policy config
 
