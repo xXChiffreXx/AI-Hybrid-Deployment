@@ -26,7 +26,7 @@ flowchart TB
     B --> P
   end
 
-  V[Consumer Tools (Read-Only)] --> S
+  V["Consumer Tools (Read-Only)"] --> S
   V --> P
   U[Research Clients over SSH or API] --> G
   G --> C[Cloud LLM]

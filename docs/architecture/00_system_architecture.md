@@ -46,7 +46,7 @@ flowchart LR
   end
 
   G --> C[Cloud LLM Route]
-  S --> V[Consumer Tools (Read-Only)]
+  S --> V["Consumer Tools (Read-Only)"]
   P --> V
 ```
 
