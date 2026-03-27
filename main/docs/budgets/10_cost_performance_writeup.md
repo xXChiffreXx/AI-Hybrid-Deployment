@@ -106,6 +106,12 @@ Default Ollama model mapping used by the budget tiers:
 | `$5,000` | `qwen2.5:32b` |
 | `$7,500` | `qwen2.5:72b` |
 
+Summer-pilot quantization note:
+
+- the reference quantization for the planning docs is `q4_K_M`
+- quantization must be tracked explicitly as `quantization_profile` in telemetry and evaluation windows
+- detailed policy: [`../planning/01_quantization_strategy.md`](../planning/01_quantization_strategy.md)
+
 ## 4) Memory Envelope and Effective Throughput
 
 | Budget   | Installed Memory Envelope | Usable Envelope ($\eta M_{avail}$) | $f_{fit}$ | $\mu_{eff}$ (tokens/sec) |
@@ -180,20 +186,21 @@ After 2-4 weeks of production telemetry, update:
 2. $f_{fit}$ from observed memory pressure behavior.
 3. $r_h$ from actual hard-route fraction.
 4. $r_{over}$ from queue spill metrics.
-5. $T_{in}, T_{out}$ from observed medians.
-6. $h_{db}$ from DB complete-hit measurements.
-7. $p_{escalate}$ at configured local time budget.
-8. $c_{fill}$ from observed fill-call spend per call.
-9. Recompute costs, cloud-call volume, utilization, and queue-risk indicators.
+5. `quantization_profile`, context, and concurrency from the actual run; do not merge unlike quantization windows.
+6. $T_{in}, T_{out}$ from observed medians.
+7. $h_{db}$ from DB complete-hit measurements.
+8. $p_{escalate}$ at configured local time budget.
+9. $c_{fill}$ from observed fill-call spend per call.
+10. Recompute costs, cloud-call volume, utilization, and queue-risk indicators.
 
 ## 10) Snapshot Roll-Up Table (Cross-Architecture)
 
 Populate this table from the per-architecture snapshot entries to compare real pilot performance.
 
-| Snapshot ID | Git Commit | Date (UTC) | Architecture | Model Profile | Context | Concurrency | Sources/Day Observed | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | `h_db_obs` | `local_time_budget_sec` | `p_escalate_obs` | `c_fill_obs` (USD/call) | `cloud_fill_calls_obs` | `local_cli_calls_obs` | `batch_count_obs` | `batch_size_avg_obs` | `batch_cloud_escalation_count_obs` | Cloud Spend Window (USD) | `q_accept_obs` | Notes |
-| ----------- | ---------- | ---------- | ------------ | ------------- | ------: | ----------: | -------------------: | -------------------: | --------: | -----------: | ---------------: | ---------: | ----------------------: | ---------------: | ----------------------: | ---------------------: | --------------------: | -----------------: | --------------------: | ---------------------------------: | -----------------------: | -------------: | ----- |
-| snap-001    |            |            |              |               |         |             |                      |                      |           |              |                  |            |                         |                  |                         |                        |                       |                   |                      |                                    |                          |                |       |
-| snap-002    |            |            |              |               |         |             |                      |                      |           |              |                  |            |                         |                  |                         |                        |                       |                   |                      |                                    |                          |                |       |
+| Snapshot ID | Git Commit | Date (UTC) | Architecture | Model Profile | Quantization | Context | Concurrency | Sources/Day Observed | `mu_eff_obs` (tok/s) | `rho_obs` | `r_over_obs` | Peak Memory (GB) | `h_db_obs` | `local_time_budget_sec` | `p_escalate_obs` | `c_fill_obs` (USD/call) | `cloud_fill_calls_obs` | `local_cli_calls_obs` | `batch_count_obs` | `batch_size_avg_obs` | `batch_cloud_escalation_count_obs` | Cloud Spend Window (USD) | `q_accept_obs` | Notes |
+| ----------- | ---------- | ---------- | ------------ | ------------- | ------------ | ------: | ----------: | -------------------: | -------------------: | --------: | -----------: | ---------------: | ---------: | ----------------------: | ---------------: | ----------------------: | ---------------------: | --------------------: | -----------------: | --------------------: | ---------------------------------: | -----------------------: | -------------: | ----- |
+| snap-001    |            |            |              |               |              |         |             |                      |                      |           |              |                  |            |                         |                  |                         |                        |                       |                   |                      |                                    |                          |                |       |
+| snap-002    |            |            |              |               |              |         |             |                      |                      |           |              |                  |            |                         |                  |                         |                        |                       |                   |                      |                                    |                          |                |       |
 
 Use this roll-up to replace model values with observed medians in Sections 3-6 after the pilot window.
 

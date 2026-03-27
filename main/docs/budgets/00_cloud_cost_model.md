@@ -83,6 +83,10 @@ M_w \approx \frac{P \cdot b_w}{8}
 
 where $P$ is number of parameters and $b_w$ is weight precision in bits.
 
+Operational note:
+
+- for this repository, the effective value of $b_w$ must be recorded as a named `quantization_profile` for each pilot window (for example: `q4_K_M`, `q4_K_S`, or `q8_0`).
+
 KV-cache memory (decoder-only, approximate):
 
 ```math
@@ -323,13 +327,14 @@ At the end of each month:
 2. Replace $h$ with observed cache hit rate.
 3. Replace $\phi$ with observed peak/average demand ratio.
 4. Replace $r_h$ with observed hard-route fraction.
-5. Re-estimate $\mu_{compute}$ and $\mu_{memory}$ from measured tokens/sec under production concurrency.
-6. Re-estimate memory pressure multiplier $f_{fit}$ from observed OOM, eviction, and KV pressure behavior.
-7. Replace $h_{db}$ with observed DB complete-hit rate.
-8. Replace $p_{escalate}$ with observed escalation probability at configured $\tau_{local}$ for batched local resolution.
-9. Replace $c_{fill}$ with observed mean fill-call cost.
-10. Replace $m_{miss}$ with observed average missing-field count.
-11. Recompute $C_{month}$, $C_{month}^{web}$, $\rho$, and call-volume metrics.
+5. Record `quantization_profile` and do not aggregate windows that mix materially different quantization settings.
+6. Re-estimate $\mu_{compute}$ and $\mu_{memory}$ from measured tokens/sec under production concurrency.
+7. Re-estimate memory pressure multiplier $f_{fit}$ from observed OOM, eviction, and KV pressure behavior.
+8. Replace $h_{db}$ with observed DB complete-hit rate.
+9. Replace $p_{escalate}$ with observed escalation probability at configured $\tau_{local}$ for batched local resolution.
+10. Replace $c_{fill}$ with observed mean fill-call cost.
+11. Replace $m_{miss}$ with observed average missing-field count.
+12. Recompute $C_{month}$, $C_{month}^{web}$, $\rho$, and call-volume metrics.
 
 ## 13) Snapshot Data Entry Schema (for Real Numbers)
 
@@ -342,6 +347,7 @@ Use this schema for every test deployment window so model values can be replaced
 | `snapshot_id`            | text       | Unique deployment run identifier.                           |
 | `architecture_option`    | text       | One of: `$599`, `$2,500`, `$5,000`, `$7,500`.               |
 | `git_commit`             | text       | Code revision used for this snapshot run.                   |
+| `quantization_profile`   | text       | Local weight-quantization profile used in the window.       |
 | `window_start_utc`       | datetime   | Snapshot start time.                                        |
 | `window_end_utc`         | datetime   | Snapshot end time.                                          |
 | `sources_completed`      | count      | Throughput in completed knowledge-source jobs.              |
@@ -408,9 +414,9 @@ C_{accept,obs} = \frac{TC_{month,obs}}{accepted\_items}
 
 ### 13.3 Snapshot Row Template
 
-| snapshot_id | architecture_option | git_commit | window_start_utc | window_end_utc | sources_completed | tokens_in | tokens_out | lambda_peak_obs | mu_compute_obs | mu_memory_obs | f_fit_obs | mu_eff_obs | rho_obs | r_over_obs | memory_peak_gb | cache_hit_rate_obs | h_db_obs | local_time_budget_sec | p_escalate_obs | c_fill_obs | cloud_fill_calls_obs | avg_missing_fields_obs | local_cli_calls_obs | batch_count_obs | batch_size_avg_obs | batch_cloud_escalation_count_obs | r_h_obs | cloud_spend_usd | q_accept_obs | accepted_items | notes |
-| ----------- | ------------------- | ---------- | ---------------- | -------------- | ----------------- | --------- | ---------- | --------------- | -------------- | ------------- | --------- | ---------- | ------- | ---------- | -------------- | ------------------ | --------------- | --------------------- | -------------- | ---------- | -------------------- | ---------------------- | ------------------- | --------------- | ------------------ | -------------------------------- | ------- | --------------- | ------------ | -------------- | ----- |
-| snap-001    |                     |            |                  |                |                   |           |            |                 |                |               |           |            |         |            |                |                    |                 |                       |                |            |                      |                        |                     |                 |                    |                                  |         |                 |              |                |       |
+| snapshot_id | architecture_option | git_commit | quantization_profile | window_start_utc | window_end_utc | sources_completed | tokens_in | tokens_out | lambda_peak_obs | mu_compute_obs | mu_memory_obs | f_fit_obs | mu_eff_obs | rho_obs | r_over_obs | memory_peak_gb | cache_hit_rate_obs | h_db_obs | local_time_budget_sec | p_escalate_obs | c_fill_obs | cloud_fill_calls_obs | avg_missing_fields_obs | local_cli_calls_obs | batch_count_obs | batch_size_avg_obs | batch_cloud_escalation_count_obs | r_h_obs | cloud_spend_usd | q_accept_obs | accepted_items | notes |
+| ----------- | ------------------- | ---------- | -------------------- | ---------------- | -------------- | ----------------- | --------- | ---------- | --------------- | -------------- | ------------- | --------- | ---------- | ------- | ---------- | -------------- | ------------------ | -------- | --------------------- | -------------- | ---------- | -------------------- | ---------------------- | ------------------- | --------------- | ------------------ | -------------------------------- | ------- | --------------- | ------------ | -------------- | ----- |
+| snap-001    |                     |            |                      |                  |                |                   |           |            |                 |                |               |           |            |         |            |                |                    |          |                       |                |            |                      |                        |                     |                 |                    |                                  |         |                 |              |                |       |
 
 ## 14) Reference Baselines Used
 

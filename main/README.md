@@ -30,6 +30,27 @@ Confidence-interval methodology for output acceptance/hallucination quality is i
 - [`docs/confidence/00_output_confidence_interval_method.md`](docs/confidence/00_output_confidence_interval_method.md)
 - [`docs/confidence/01_qwen_budget_hallucination_standard.md`](docs/confidence/01_qwen_budget_hallucination_standard.md)
 
+## Summer Project Planning
+
+Summer-project execution docs are in `docs/planning`:
+
+- [`docs/planning/README.md`](docs/planning/README.md)
+- [`docs/planning/00_summer_project_brief.md`](docs/planning/00_summer_project_brief.md)
+- [`docs/planning/01_quantization_strategy.md`](docs/planning/01_quantization_strategy.md)
+- [`docs/planning/02_pilot_track_a_scope.md`](docs/planning/02_pilot_track_a_scope.md)
+- [`docs/planning/03_mvp_backlog.md`](docs/planning/03_mvp_backlog.md)
+- [`docs/planning/04_evaluation_protocol.md`](docs/planning/04_evaluation_protocol.md)
+- [`docs/planning/05_telemetry_pilot_plan.md`](docs/planning/05_telemetry_pilot_plan.md)
+
+Current summer-pilot reference configuration:
+
+- budget tier: `$2,500`
+- local model: `qwen2.5:14b`
+- reference quantization: `q4_K_M`
+- serving policy: local-first plus one cloud fill escalation per unresolved batch
+
+The `$5,000` tier remains the preferred upgrade path if the summer pilot needs to become a longer-lived shared lab service.
+
 ## Quick Comparison (Industry-Style, Architecture Baseline)
 
 | Budget   | Effective Throughput (&mu;<sub>eff</sub>) | Usable Memory Envelope (&eta; M<sub>avail</sub>) | Stability (&rho;<sub>base</sub> / &rho;<sub>stress</sub>) | Est. Cloud Cost / Month (Base) | Est. Cloud Cost / Month (Stress) |

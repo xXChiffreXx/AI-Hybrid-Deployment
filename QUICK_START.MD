@@ -13,6 +13,7 @@ Primary entry document:
 - A design and planning repository for AI-enabled research workflow architecture.
 - A budget and capacity analysis for local-first plus cloud-fallback operation.
 - A specification for what structured knowledge artifacts the pipeline is meant to produce.
+- A summer-project planning aid for a professor-led polypharmacy pilot.
 
 ## What this repository is not
 
@@ -29,6 +30,9 @@ Primary entry document:
 5. Read [`main/KNOWLEDGE_BASE_ITEMS.md`](main/KNOWLEDGE_BASE_ITEMS.md) for output artifact schema and quality gates.
 6. Read [`main/docs/confidence/00_output_confidence_interval_method.md`](main/docs/confidence/00_output_confidence_interval_method.md) for formal confidence-interval quality gating.
 7. Read [`main/docs/confidence/01_qwen_budget_hallucination_standard.md`](main/docs/confidence/01_qwen_budget_hallucination_standard.md) for budget-tier Qwen hallucination standards.
+8. Read [`main/docs/planning/00_summer_project_brief.md`](main/docs/planning/00_summer_project_brief.md) for the recommended summer pilot profile and deliverables.
+9. Read [`main/docs/planning/01_quantization_strategy.md`](main/docs/planning/01_quantization_strategy.md) for the explicit quantization policy that the budget docs assume.
+10. Read [`main/docs/planning/03_mvp_backlog.md`](main/docs/planning/03_mvp_backlog.md) for the implementation order.
 
 ## Plain-language MVP workflow (current design intent)
 
@@ -66,6 +70,10 @@ This repository currently documents architecture and cost models only. It does n
 - deployment manifests
 - operational scripts (backup/restore/metrics export)
 
+The prioritized build order for closing this gap is documented in:
+
+- [`main/docs/planning/03_mvp_backlog.md`](main/docs/planning/03_mvp_backlog.md)
+
 ## Terms used repeatedly
 
 - `resolver-gateway`: orchestrates job flow, policy checks, and write control.
@@ -73,3 +81,4 @@ This repository currently documents architecture and cost models only. It does n
 - `q_min`: minimum confidence threshold for accepting local fill output.
 - `mu_eff`: memory-constrained effective token throughput.
 - `rho`: utilization ratio (`lambda_peak / mu_eff`), where values near or above `1` indicate queue risk.
+- `quantization_profile`: named local weight-precision setting used for a pilot window.

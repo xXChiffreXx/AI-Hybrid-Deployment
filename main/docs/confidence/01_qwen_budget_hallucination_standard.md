@@ -20,6 +20,11 @@ Current default local model mapping by budget tier:
 | `$5,000` | `qwen2.5:32b` |
 | `$7,500` | `qwen2.5:72b` |
 
+Operational note:
+
+- deployment quality is affected by both model size and `quantization_profile`
+- hallucination windows should therefore record quantization explicitly, not just the model family
+
 ## 3) "Standard Hallucination Rate" Clarification
 
 There is no single universal hallucination rate for a model family that is valid across all tasks, prompts, retrieval context, and evaluation protocols.
@@ -66,16 +71,18 @@ h_{upper,current} \le h_{guard,b}
 
 If any condition fails, tighten `q_min` and/or route more unresolved batches to cloud fallback until recalibration.
 
+If quantization changes for a tier, start a new rolling baseline for that tier/configuration instead of mixing old and new windows.
+
 ## 6) Reporting Table Template
 
 Populate this table each reporting window:
 
-| Window | Budget Tier | Model | Reviewed `n` | Accepted `x` | `h_obs` | `h_upper` (95%) | `h_std,b` (rolling) | `h_guard,b` (rolling) | Gate |
-| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `win-001` | `$599` | `qwen2.5:7b` |  |  |  |  |  |  |  |
-| `win-001` | `$2,500` | `qwen2.5:14b` |  |  |  |  |  |  |  |
-| `win-001` | `$5,000` | `qwen2.5:32b` |  |  |  |  |  |  |  |
-| `win-001` | `$7,500` | `qwen2.5:72b` |  |  |  |  |  |  |  |
+| Window | Budget Tier | Model | Quantization | Reviewed `n` | Accepted `x` | `h_obs` | `h_upper` (95%) | `h_std,b` (rolling) | `h_guard,b` (rolling) | Gate |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `win-001` | `$599` | `qwen2.5:7b` | `q4_K_M` |  |  |  |  |  |  |  |
+| `win-001` | `$2,500` | `qwen2.5:14b` | `q4_K_M` |  |  |  |  |  |  |  |
+| `win-001` | `$5,000` | `qwen2.5:32b` | `q4_K_M` |  |  |  |  |  |  |  |
+| `win-001` | `$7,500` | `qwen2.5:72b` | `q4_K_M` |  |  |  |  |  |  |  |
 
 ## 7) Pre-Telemetry Default
 

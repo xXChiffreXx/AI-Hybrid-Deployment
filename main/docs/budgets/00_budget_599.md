@@ -49,6 +49,8 @@ Service layer is OS-agnostic because local inference is standardized through `ol
 
 - Primary local model tag: `qwen2.5:7b`
 - Pull command: `ollama pull qwen2.5:7b`
+- Summer pilot reference quantization: `q4_K_M`
+- Explicit quantization policy and alternates: [`../planning/01_quantization_strategy.md`](../planning/01_quantization_strategy.md)
 
 ## Memory-Constrained Operating Point
 
